@@ -1,0 +1,62 @@
+# Python: caches, build metadata, coverage
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Python environments
+# The conda environment itself lives outside this folder (see environment.yml). These entries
+# cover a virtualenv, a prefix-style conda env, and a machine-specific copy of environment.yml.
+.venv/
+.conda/
+environment.local.yml
+condaenv.*.requirements.txt
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime artefacts
+runtime/
+*.log
+*.sqlite3
+
+# Model artefacts and data
+ml/checkpoints/
+ml/artifacts/
+research/data/
+research/exports/
+
+# Node: dependencies and build output
+# All three packages (shared, extension, frontend) are npm workspaces, so one node_modules
+# at the root is the normal case; the nested entry covers a per-package install.
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/public/downloads/
+extension/.output/
+extension/.wxt/
+*.tsbuildinfo
+
+# Browser tests and extension fixtures
+# Real fixtures hold third-party listing text and must never be committed.
+extension/fixtures/real/
+extension/playwright-report/
+extension/test-results/
+
+# Tool and assistant scratch folders
+.tmp/
+.claude/
+.superpowers/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,32 @@
+.PHONY: install install-dev api web test lint typecheck secret-scan check
+
+install:
+	python -m pip install -r requirements.txt
+	npm ci
+
+install-dev:
+	python -m pip install -r requirements-dev.txt
+	npm ci
+
+# Run these from a terminal where the conda environment is active (conda activate Guardianlens_venv).
+api:
+	uvicorn api.main:app --reload --port 8000
+
+web:
+	npm run dev -w frontend
+
+test:
+	pytest
+
+lint:
+	ruff check api ml scripts
+	cd frontend && npm run lint
+
+typecheck:
+	mypy api ml/src/guardianlens_ml
+	cd frontend && npm run typecheck
+
+secret-scan:
+	python scripts/secret_scan.py
+
+check: lint typecheck test secret-scan

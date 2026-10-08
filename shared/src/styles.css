@@ -1,0 +1,514 @@
+/* GuardianLens shared styles.
+
+   Imported by the website (frontend/app/layout.tsx) and by the extension side panel
+   (extension/entrypoints/sidepanel/main.tsx), so both surfaces look identical. It holds:
+     1. the design tokens (docs/spec/04_Design_Brief_UI_UX.md, section 3),
+     2. base element styles, form controls, buttons, and notices,
+     3. the styles of the components in src/components.
+   Page-specific layout stays in each app's own stylesheet.
+
+   Design direction: functionalist and calm (the brief's "lab report in plain words"). Colour is
+   information, never decoration: risk colours always travel with text and an icon. Borders carry
+   structure; there is a single soft shadow, used only for the sticky submit bar. */
+
+/* ---- 1. Design tokens ---------------------------------------------------------------- */
+:root {
+  --color-ink: #1a2332; /* primary text */
+  --color-ink-muted: #4a5568; /* secondary text, captions */
+  --color-surface: #ffffff; /* cards and sheets */
+  --color-surface-alt: #f4f6f8; /* page background */
+  --color-border: #d7dee6;
+  --color-primary: #1d4ed8; /* primary actions, links, focus ring */
+  --color-primary-dark: #173da8;
+  --color-primary-ink: #ffffff; /* text on primary */
+  --color-risk-low: #1e7a46;
+  --color-risk-moderate: #9a5b00;
+  --color-risk-high: #b42318;
+  --color-risk-unknown: #4a5568;
+  --radius-card: 12px;
+  --radius-input: 8px;
+  --shadow-sheet: 0 12px 32px rgb(26 35 50 / 0.14);
+}
+
+/* ---- 2. Base, forms, buttons, notices ------------------------------------------------ */
+* {
+  box-sizing: border-box;
+}
+html {
+  background: var(--color-surface-alt);
+}
+body {
+  margin: 0;
+  color: var(--color-ink);
+  background: var(--color-surface-alt);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+/* Visible focus on every interactive element (WCAG 2.1 AA). */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Wordmark: ring mark plus the product name, used in both headers. */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.wordmark:hover {
+  text-decoration: none;
+}
+.lens-mark {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-primary);
+  border-radius: 50%;
+  position: relative;
+}
+.lens-mark::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 3px;
+  background: var(--color-primary);
+  right: -7px;
+  bottom: -3px;
+  transform: rotate(45deg);
+  border-radius: 4px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Icons: inline SVG drawn with currentColor, so each takes the colour of the text beside it. */
+.icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+/* Cards. `.explainer-card` is the website landing page's card and shares the same look. */
+.explainer-card,
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  padding: 20px;
+}
+.explainer-card h2,
+.card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.explainer-card p,
+.card p {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+
+/* Buttons: at least 48px tall so they are easy to hit on touch screens. */
+.button {
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 11px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 650;
+  transition:
+    background 160ms ease-out,
+    border-color 160ms ease-out,
+    opacity 160ms ease-out;
+}
+.button:hover {
+  text-decoration: none;
+}
+.button-primary {
+  color: var(--color-primary-ink);
+  background: var(--color-primary);
+}
+.button-primary:hover {
+  background: var(--color-primary-dark);
+}
+.button-secondary {
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+.button-text {
+  color: var(--color-primary);
+  background: transparent;
+  padding-inline: 8px;
+}
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.button-full {
+  width: 100%;
+}
+
+/* Form fields: a label above the control, helper and error text below it. */
+.field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.field:last-child {
+  margin-bottom: 0;
+}
+label,
+.field-label {
+  font-size: 14px;
+  font-weight: 650;
+}
+input,
+textarea,
+select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #aeb8c5;
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: 10px 12px;
+}
+textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+.helper {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+.error-text {
+  color: var(--color-risk-high);
+  font-size: 14px;
+  font-weight: 600;
+}
+.char-count {
+  text-align: right;
+  color: var(--color-ink-muted);
+  font-size: 13px;
+}
+
+/* Collapsible optional group (seller information). */
+details.optional {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+/* The summary is a tap target, so it is padded to 44px tall (24px line + 2 x 10px). */
+details.optional summary {
+  cursor: pointer;
+  font-weight: 650;
+  padding: 10px 0;
+}
+
+/* Retention notice and the sticky submit bar it sits in (kept in one visual group). */
+.retention {
+  border-left: 3px solid var(--color-primary);
+  padding: 10px 12px;
+  background: #eef4ff;
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+.submit-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.97);
+  box-shadow: var(--shadow-sheet);
+}
+
+/* Notices and manual-check lists. */
+.notice {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 14px;
+  color: var(--color-ink-muted);
+}
+.check-list {
+  margin: 0;
+  padding-left: 22px;
+}
+.check-list li {
+  margin: 10px 0;
+}
+
+/* Feedback choices (helpful / unclear / potentially incorrect). */
+.feedback-options {
+  display: grid;
+  gap: 8px;
+}
+.option-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.option-row input {
+  width: 18px;
+  min-height: 18px;
+}
+.success-text {
+  color: var(--color-risk-low);
+  font-weight: 650;
+}
+
+.loading {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  color: var(--color-ink-muted);
+}
+
+/* ---- 3. Component styles ------------------------------------------------------------- */
+
+/* DevBanner: shown while scores come from development stubs. */
+.dev-banner {
+  border: 1px solid #f0c36a;
+  background: #fff8e8;
+  color: #6d4600;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+/* StageList: the five processing stages (done / active / pending). */
+.stage-list {
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  color: var(--color-ink-muted);
+}
+.stage-dot {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.stage-dot .icon {
+  width: 14px;
+  height: 14px;
+}
+.stage-active {
+  color: var(--color-ink);
+  font-weight: 650;
+}
+.stage-active .stage-dot {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 5px rgb(29 78 216 / 0.12);
+}
+.stage-done .stage-dot {
+  border-color: var(--color-risk-low);
+  color: var(--color-risk-low);
+}
+
+/* ScoreRegion + BandChip: the score, band, and disclaimer as one bounded region. */
+.score-region {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  padding: 28px 20px;
+  text-align: center;
+}
+.score-number {
+  font-size: 52px;
+  line-height: 1;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.score-total {
+  color: var(--color-ink-muted);
+  font-size: 15px;
+}
+.band-unit {
+  margin-top: 14px;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+}
+.band-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.band-chip .icon {
+  width: 16px;
+  height: 16px;
+}
+.band-meaning {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+.band-low .band-chip {
+  color: var(--color-risk-low);
+  background: #e8f5ed;
+}
+.band-moderate .band-chip {
+  color: var(--color-risk-moderate);
+  background: #fff3dd;
+}
+.band-high .band-chip {
+  color: var(--color-risk-high);
+  background: #fdeceb;
+}
+.disclaimer {
+  border-top: 1px solid var(--color-border);
+  margin-top: 20px;
+  padding-top: 16px;
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  text-align: left;
+}
+
+/* SignalCardView: one card per signal. All three share one template. */
+.signal-grid {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+.signal-card {
+  display: block;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: 18px;
+  transition: border-color 160ms ease-out;
+}
+.signal-card:hover {
+  border-color: #9eb5df;
+  text-decoration: none;
+}
+.signal-heading {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.signal-heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.signal-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #eef4ff;
+  color: var(--color-primary);
+}
+.signal-icon .icon {
+  width: 22px;
+  height: 22px;
+}
+/* The status word, with a question icon in front of it when the signal is unknown. */
+.signal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  text-transform: capitalize;
+}
+.signal-status .icon {
+  width: 14px;
+  height: 14px;
+}
+.signal-card p {
+  margin: 12px 0 0;
+  color: var(--color-ink-muted);
+}
+/* A dashed border marks an unavailable ("unknown") signal. */
+.signal-unavailable {
+  border-style: dashed;
+}
+.chevron {
+  display: grid;
+  place-items: center;
+  color: var(--color-ink-muted);
+}
+.chevron .icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* Respect the reader's motion preference: no transitions or animations at all. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
