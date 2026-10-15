@@ -17,6 +17,7 @@ import {
   type GuardianLensClient,
   type SignalName,
 } from "@guardianlens/shared";
+import { classifySellerUrl } from "../capture/classify";
 import { runCheck } from "./check";
 import type { DraftFieldKey } from "./draft";
 import { mapApiError } from "./errors";
@@ -31,6 +32,8 @@ export interface ControllerDeps {
   storage: PanelStorage;
   /** Opens a URL in a new browser tab. */
   openUrl(url: string): void;
+  /** Reads the page open in the browser now, asking for site access the first time. */
+  captureActiveTab(): Promise<void>;
   /** The website's origin, for "See full explanation", "This session", and the manual form. */
   siteBaseUrl: string;
   /** Replaceable delay between status polls; defaults to a real timer. */
@@ -57,6 +60,10 @@ export interface PanelActions {
   openFullExplanation(signal?: SignalName): Promise<void>;
   /** Opens a page of the website in a new tab (the history link carries the session handoff). */
   openSitePath(path: string): Promise<void>;
+  /** Opens the seller's page found on the listing in a new tab, ready for the second capture. */
+  openSellerPage(): void;
+  /** Captures the page open in the browser now (the second capture, on the seller's page). */
+  capture(): void;
 }
 
 // The real delay between status polls: resolves after `ms` milliseconds.
@@ -174,13 +181,8 @@ export function usePanelController(deps: ControllerDeps): {
     edit: (key, value) => dispatch({ type: "edit_field", key, value }),
     togglePhoto: (url) => dispatch({ type: "toggle_photo", url }),
     submit: () => dispatch({ type: "submit_requested" }),
-    cancel: () => {
-      if (state.view.name === "checking") {
-        // Tell the server it can stop; the buyer is already back in Review whatever happens.
-        void deps.client.cancel(state.view.assessmentId).catch(() => undefined);
-      }
-      dispatch({ type: "cancelled" });
-    },
+    // The run is retired here; runCheck notices on its next step and tells the server to stop.
+    cancel: () => dispatch({ type: "cancelled" }),
     retry: () => dispatch({ type: "back_to_review" }),
     checkAnother: () => dispatch({ type: "check_another" }),
     sendFeedback: async (verdict) => {
@@ -209,6 +211,21 @@ export function usePanelController(deps: ControllerDeps): {
           : `${deps.siteBaseUrl.replace(/\/+$/, "")}/assess/${assessmentId}/explanation`,
       );
     },
+    openSellerPage: () => {
+      const url = state.draft?.sellerUrl;
+      // Only a seller page of a supported marketplace is ever opened, whatever storage holds.
+      if (url && classifySellerUrl(url)) deps.openUrl(url);
+    },
+    // Called straight from the click: Chrome allows its permission prompt only inside a click. A
+    // refusal by the buyer reads nothing and says nothing; any other failure is shown the same
+    // way as a page that could not be read.
+    capture: () =>
+      void deps.captureActiveTab().catch(() =>
+        dispatch({
+          type: "capture_finished",
+          job: { id: Date.now(), tabId: -1, status: "error", error: "inject_failed" },
+        }),
+      ),
     openSitePath: async (path) => {
       const base = deps.siteBaseUrl.replace(/\/+$/, "");
       // History lists the checks of a session, so it needs the extension's session: the link

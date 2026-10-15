@@ -180,7 +180,7 @@ describe("validateDraft", () => {
       }),
     );
     const errors = validateDraft(draft);
-    expect(errors.title).toBe("Use 180 characters or fewer.");
+    expect(errors.title).toBe("Use 500 characters or fewer.");
     expect(errors.description).toBe("Use 5000 characters or fewer.");
   });
 

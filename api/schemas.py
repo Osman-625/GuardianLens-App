@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -194,29 +194,6 @@ class CaptureMeta(BaseModel):
     fields: dict[CaptureField, CaptureStatus]
 
 
-class AdminBundleSummary(BaseModel):
-    """One model bundle as the admin page lists it: label, components, and band boundaries."""
-
-    label: str
-    is_active: bool
-    development_stub: bool
-    component_versions: dict[str, str]
-    band_boundaries: dict[str, float] | None
-
-
-class AdminRecordSummary(BaseModel):
-    """One anonymised assessment record as the admin page lists it."""
-
-    assessment_id: UUID
-    title: str
-    band: RiskBand | None
-    score: int | None
-    status: AssessmentStatus
-    # Where the submission came from: "extension" or "manual".
-    source: str
-    created_at: datetime
-
-
 class HealthResponse(BaseModel):
     """Response of GET /health: the API's mode, active bundle, and model readiness."""
 
@@ -225,11 +202,5 @@ class HealthResponse(BaseModel):
     stub_mode: bool
     inference_mode: Literal["stub", "trained"] = "stub"
     model_bundle_label: str | None = None
-    configured_model_run: str | None = None
     missing_model_artifacts: list[str] = Field(default_factory=list)
     visual_model_ready: bool = False
-    visual_unavailable_reason: str | None = None
-
-
-# A JSON object whose values are not checked further.
-JsonDict = dict[str, Any]

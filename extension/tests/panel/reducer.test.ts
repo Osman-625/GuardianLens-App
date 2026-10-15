@@ -179,6 +179,9 @@ describe("old captures never overwrite newer work", () => {
   });
 });
 
+// The seller page used by the seller-capture tests below.
+const SELLER_PAGE = "https://www.carousell.com.my/u/someone/";
+
 describe("seller page captures", () => {
   // A finished capture job of a seller page (ready, or blocked by a captcha).
   const sellerJob = (id: number, pageState: "ready" | "captcha" = "ready"): CaptureJob => ({
@@ -188,6 +191,7 @@ describe("seller page captures", () => {
     result: {
       kind: "seller",
       platform: "carousell",
+      url: SELLER_PAGE,
       seller: sampleSeller(),
       pageState,
     },
@@ -208,7 +212,54 @@ describe("seller page captures", () => {
     });
     expect(state.view).toEqual({ name: "review" });
     expect(state.draft?.fields.rating.value).toBe("4.8");
-    expect(state.notice).toBe("Seller details added. Check the listing again to include them.");
+    // The listing did not link its seller, so the notice names the page for the buyer to check.
+    expect(state.notice).toBe(
+      "Seller details added from www.carousell.com.my/u/someone. " +
+        "Check that this is the seller of this listing, then press Check listing.",
+    );
+  });
+
+  it("does not say details were added when the seller page showed none", () => {
+    const empty = sampleSeller({
+      accountAgeDays: { status: "not_found", value: null },
+      rating: { status: "not_found", value: null },
+      reviewCount: { status: "not_found", value: null },
+      activeListingCount: { status: "not_found", value: null },
+    });
+    const state = run(review(), {
+      type: "capture_finished",
+      job: {
+        ...sellerJob(11),
+        result: {
+          kind: "seller",
+          platform: "carousell",
+          url: SELLER_PAGE,
+          seller: empty,
+          pageState: "ready",
+        },
+      },
+    });
+    expect(state.view).toEqual({ name: "review" });
+    expect(state.notice).toBe(
+      "No seller details could be read from that page. Type what you can see below.",
+    );
+    expect(state.draft?.fields.rating.value).toBe("");
+  });
+
+  // The second capture opens the panel in a NEW tab, which restores the saved draft from storage.
+  // A seller capture can land a moment before that finishes; it must not be thrown away.
+  it("keeps a seller capture that arrives before the saved draft has been restored", () => {
+    const early = run(initialPanelState, { type: "capture_finished", job: sellerJob(11) });
+    const restored = run(early, {
+      type: "state_restored",
+      draft: draftFromListing(sampleListing()),
+      lastDoneJobId: 10,
+    });
+    // After restoring, the controller reads the stored job again and hands it over.
+    const state = run(restored, { type: "capture_finished", job: sellerJob(11) });
+    expect(state.view).toEqual({ name: "review" });
+    expect(state.draft?.fields.rating.value).toBe("4.8");
+    expect(state.draft?.fields.activeListingCount.value).toBe("4");
   });
 
   it("does not overwrite what the buyer typed", () => {
@@ -218,6 +269,66 @@ describe("seller page captures", () => {
       { type: "capture_finished", job: sellerJob(11) },
     );
     expect(state.draft?.fields.rating.value).toBe("3");
+  });
+
+  // When the listing page linked to its seller, only that page may fill the seller details.
+  describe("which seller page counts", () => {
+    const withLink = () =>
+      run(initialPanelState, {
+        type: "capture_finished",
+        job: {
+          id: 10,
+          tabId: 1,
+          status: "done",
+          result: { kind: "listing", listing: sampleListing({ sellerUrl: SELLER_PAGE }) },
+        },
+      });
+    const otherSeller = (url: string): CaptureJob => ({
+      ...sellerJob(11),
+      result: {
+        kind: "seller",
+        platform: "carousell",
+        url,
+        seller: sampleSeller(),
+        pageState: "ready",
+      },
+    });
+
+    it("keeps the short notice when the page is the one the listing linked", () => {
+      const state = run(withLink(), {
+        type: "capture_finished",
+        job: otherSeller(SELLER_PAGE),
+      });
+      expect(state.notice).toBe("Seller details added. Press Check listing to include them.");
+    });
+
+    it("accepts the linked page, whatever its capitals or trailing slash", () => {
+      const state = run(withLink(), {
+        type: "capture_finished",
+        job: otherSeller("https://www.carousell.com.my/u/SomeOne"),
+      });
+      expect(state.draft?.fields.rating.value).toBe("4.8");
+    });
+
+    it("refuses another seller's page and the buyer's own profile, and says why", () => {
+      for (const url of [
+        "https://www.carousell.com.my/u/someone-else/",
+        "https://www.carousell.com.my/u/my-own-profile/",
+      ]) {
+        const state = run(withLink(), { type: "capture_finished", job: otherSeller(url) });
+        expect(state.draft?.fields.rating.value).toBe("");
+        expect(state.view).toEqual({ name: "review" });
+        expect(state.notice).toContain("not this listing's seller");
+      }
+    });
+
+    it("accepts any seller page when the listing did not link to one", () => {
+      const state = run(review(), {
+        type: "capture_finished",
+        job: otherSeller("https://www.carousell.com.my/u/anyone/"),
+      });
+      expect(state.draft?.fields.rating.value).toBe("4.8");
+    });
   });
 
   it("keeps the draft and says so when the seller page could not be read", () => {
@@ -493,6 +604,7 @@ describe("a check that is running", () => {
         result: {
           kind: "seller",
           platform: "carousell",
+          url: SELLER_PAGE,
           seller: sampleSeller(),
           pageState: "ready",
         },

@@ -10,7 +10,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { DevBanner } from "@guardianlens/shared";
+import { BAND_ROUNDING_NOTE, DevBanner } from "@guardianlens/shared";
 import { apiFetch } from "@/lib/api";
 import type { AssessmentResult } from "@/lib/types";
 import { useSessionClaim } from "@/lib/useSessionClaim";
@@ -62,13 +62,17 @@ export default function ExplanationPage() {
       {result.development_stub && <DevBanner />}
       <p className="eyebrow">Explanation details</p>
       <h1 className="page-title">Why this result was shown</h1>
-      <p className="page-lead">Reasons are grouped by signal. Missing fields stay unknown.</p>
+      <p className="page-lead">
+        Reasons are grouped by signal. Missing fields stay unknown. Model:{" "}
+        {result.model_bundle_label}, {result.total_latency_ms} ms.
+      </p>
 
       {result.signal_cards.map((card) => (
         <section className="card explanation-section" id={card.signal} key={card.signal}>
           <h2>{labels[card.signal]}</h2>
           <p>
-            <strong className="status-word">{card.status_word}</strong>. {card.summary}
+            {!card.available && <strong className="status-word">{card.status_word}. </strong>}
+            {card.summary}
           </p>
           {card.reasons.length > 0 ? (
             <ul className="reason-list">
@@ -77,6 +81,7 @@ export default function ExplanationPage() {
                   className={`reason reason-${reason.direction}`}
                   key={`${reason.feature_key}-${reason.rank}`}
                 >
+                  <span className="reason-direction">{reason.direction} risk</span>
                   {reason.display_text}
                 </li>
               ))}
@@ -97,6 +102,7 @@ export default function ExplanationPage() {
           ))}
         </ol>
         <p className="disclaimer">{result.disclaimer}</p>
+        <p className="helper">{BAND_ROUNDING_NOTE}</p>
       </section>
 
       <Link className="button button-secondary button-full" href={`/assess/${params.id}`}>

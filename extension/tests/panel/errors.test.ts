@@ -46,10 +46,10 @@ describe("mapApiError", () => {
     });
   });
 
-  it("says the service is unreachable, mentioning the local server", () => {
+  it("says the service is not reachable", () => {
     const result = mapApiError(apiError(0, "network_unreachable", "x"));
     expect(result).toMatchObject({ target: "failure", kind: "unreachable" });
-    expect(result.target === "failure" && result.message).toContain("local server");
+    expect(result.target === "failure" && result.message).toContain("not reachable");
   });
 
   it("explains rate limiting", () => {

@@ -2,7 +2,6 @@
 // extension use one set; this file re-exports the ones the pages need, so pages import them from
 // `@/lib/types`.
 export type {
-  ApiError,
   AssessmentResult,
   HistoryItem,
   PipelineStage,

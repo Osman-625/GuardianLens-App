@@ -34,9 +34,10 @@ const HOSTS: Record<string, PlatformInfo> = {
 const CAROUSELL_LISTING = /^\/p\/[^/]+-([1-9]\d*)\/?$/i;
 const MUDAH_LISTING = /^\/[^/]+-([1-9]\d*)\.htm$/i;
 
-// Seller pages. Carousell profiles are /u/<username>/. Elsewhere a path segment named seller,
-// profile, user, shop, or dealer marks one (the same words the Collector scores seller links by).
-const CAROUSELL_SELLER = /^\/u\/[^/]+\/?$/i;
+// Seller pages. Profiles on BOTH marketplaces are /u/<username> (the Data Collector's real captures:
+// 1,469 on Carousell, 28 on Mudah). Elsewhere a path segment named seller, profile, user, shop,
+// or dealer marks one (the same words the Collector scores seller links by).
+const PROFILE_SELLER = /^\/u\/[^/]+\/?$/i;
 const GENERIC_SELLER = /\/(?:seller|profile|user|shop|dealer)(?:\/|$)/i;
 
 /** Looks up a hostname in the four known marketplace hosts (case-insensitive, exact match). */
@@ -68,6 +69,16 @@ export function classifyListingUrl(url: string | undefined): ListingRef | null {
   return listingId ? { ...info, listingId } : null;
 }
 
+/** True when two URLs are the same page: same path, ignoring case and a trailing slash. */
+export function samePage(a: string, b: string): boolean {
+  try {
+    const path = (url: string) => new URL(url).pathname.toLowerCase().replace(/\/+$/, "");
+    return path(a) === path(b);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Recognises a marketplace seller / profile page.
  * @returns The platform and host, or null when the URL is not a seller page. A listing page is
@@ -78,6 +89,6 @@ export function classifySellerUrl(url: string | undefined): PlatformInfo | null 
   if (!parsed) return null;
   const info = platformFromHost(parsed.hostname);
   if (!info || classifyListingUrl(url)) return null;
-  const isSeller = CAROUSELL_SELLER.test(parsed.pathname) || GENERIC_SELLER.test(parsed.pathname);
+  const isSeller = PROFILE_SELLER.test(parsed.pathname) || GENERIC_SELLER.test(parsed.pathname);
   return isSeller ? info : null;
 }

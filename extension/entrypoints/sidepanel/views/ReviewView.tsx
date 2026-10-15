@@ -9,7 +9,7 @@
 //     API limits is an error (with a counter), never silently cut;
 //   - errors are announced to screen readers (role="alert"), not only shown in red;
 //   - the retention notice sits in the same group as the submit button.
-import { CategoryField, RETENTION_NOTICE } from "@guardianlens/shared";
+import { CategoryField, Icon, RETENTION_NOTICE } from "@guardianlens/shared";
 import {
   LIMITS,
   validateDraft,
@@ -30,6 +30,8 @@ const STATUS_TEXT: Record<DraftField["status"], string> = {
 };
 // The status line for an optional seller field that was not found: it says "unknown", not "missing".
 const OPTIONAL_NOT_FOUND = "Not found. Treated as unknown, not as suspicious.";
+// Mudah seller pages have no ratings or reviews, so for them "not found" is expected, not a miss.
+const MUDAH_NO_RATINGS = "Mudah does not show this. Treated as unknown, not as suspicious.";
 
 // What a disabled submit button is waiting for, in the words shown above it.
 const NEEDS: Record<DraftFieldKey | "photos", string> = {
@@ -87,6 +89,8 @@ interface TextFieldProps {
   /** Maximum length: shows a counter that turns into an error when exceeded. */
   limit?: number;
   optional?: boolean;
+  /** Replaces the "not found" line of an optional field. */
+  notFoundText?: string;
   inputMode?: "numeric" | "decimal";
   placeholder?: string;
   onChange(value: string): void;
@@ -101,6 +105,7 @@ function TextField({
   multiline,
   limit,
   optional,
+  notFoundText,
   inputMode,
   placeholder,
   onChange,
@@ -114,7 +119,9 @@ function TextField({
   const length = field.value.trim().length;
   const over = limit !== undefined && length > limit;
   const status =
-    field.status === "not_found" && optional ? OPTIONAL_NOT_FOUND : STATUS_TEXT[field.status];
+    field.status === "not_found" && optional
+      ? (notFoundText ?? OPTIONAL_NOT_FOUND)
+      : STATUS_TEXT[field.status];
   const shared = {
     id,
     value: field.value,
@@ -164,6 +171,10 @@ export interface ReviewViewProps {
   onEdit(key: DraftFieldKey, value: string): void;
   onTogglePhoto(url: string): void;
   onSubmit(): void;
+  /** Opens the seller's page in a new tab (offered only when the listing page linked to it). */
+  onOpenSeller(): void;
+  /** Captures the page open in the browser now (the seller's page, after Open seller page). */
+  onCapture(): void;
   /** Opens a path on the GuardianLens website in a new tab (the manual form is "/assess"). */
   onOpenSite(path: string): void;
 }
@@ -177,6 +188,8 @@ export function ReviewView({
   onEdit,
   onTogglePhoto,
   onSubmit,
+  onOpenSeller,
+  onCapture,
   onOpenSite,
 }: ReviewViewProps) {
   // Live validation drives the button and the helper line. An error is shown next to a field when
@@ -188,6 +201,14 @@ export function ReviewView({
   const errorFor = (key: DraftFieldKey): string | undefined =>
     fieldErrors[key] ?? (draft.fields[key].value.trim() !== "" ? live[key] : undefined);
   const selectedCount = draft.photos.filter((photo) => photo.selected).length;
+  // The page's own category wording, when the prefilled value is a trained category it was matched to.
+  const pageCategory = draft.pageCategory?.trim();
+  const categoryMatchedFrom =
+    draft.fields.category.status === "captured" &&
+    pageCategory &&
+    pageCategory !== draft.fields.category.value
+      ? pageCategory
+      : null;
   const photoError = fieldErrors.photos ?? live.photos;
   // True while no seller detail has a value (captured or typed): the prompt to add them shows.
   const sellerMissing = SELLER_INPUTS.every(({ key }) => draft.fields[key].value.trim() === "");
@@ -202,11 +223,14 @@ export function ReviewView({
       }}
     >
       <div>
+        <p className="eyebrow">Current page</p>
         <h1 className="panel-title">Review what we captured</h1>
-        <p className="helper">
+        <p className="capture-banner">
+          <Icon name="check" />
           <span className="platform-chip">{PLATFORM_NAMES[draft.platform]}</span> Captured from this
           page when you clicked.
         </p>
+        <p className="helper">Moved to another listing? Click the GuardianLens icon again.</p>
       </div>
 
       {notice && (
@@ -215,7 +239,7 @@ export function ReviewView({
         </p>
       )}
 
-      <section aria-labelledby="photos-heading">
+      <section className="panel-card" aria-labelledby="photos-heading">
         <h2 id="photos-heading" className="panel-subtitle">
           Photos
         </h2>
@@ -246,56 +270,81 @@ export function ReviewView({
         )}
       </section>
 
-      <TextField
-        id="title"
-        label="Title"
-        field={draft.fields.title}
-        error={errorFor("title")}
-        limit={LIMITS.title}
-        onChange={(value) => onEdit("title", value)}
-      />
-      <TextField
-        id="description"
-        label="Description"
-        field={draft.fields.description}
-        error={errorFor("description")}
-        multiline
-        limit={LIMITS.description}
-        onChange={(value) => onEdit("description", value)}
-      />
-      <TextField
-        id="price"
-        label="Price"
-        field={draft.fields.price}
-        error={errorFor("price")}
-        inputMode="decimal"
-        placeholder="RM 1,250"
-        onChange={(value) => onEdit("price", value)}
-      />
-
-      <div>
-        <CategoryField
-          id="category"
-          value={draft.fields.category.value}
-          error={errorFor("category")}
-          onChange={(value) => onEdit("category", value)}
+      <div className="panel-card">
+        <TextField
+          id="title"
+          label="Title"
+          field={draft.fields.title}
+          error={errorFor("title")}
+          limit={LIMITS.title}
+          onChange={(value) => onEdit("title", value)}
         />
-        <span className={`field-status status-${draft.fields.category.status}`}>
-          {STATUS_TEXT[draft.fields.category.status]}
-        </span>
+        <TextField
+          id="description"
+          label="Description"
+          field={draft.fields.description}
+          error={errorFor("description")}
+          multiline
+          limit={LIMITS.description}
+          onChange={(value) => onEdit("description", value)}
+        />
+        <TextField
+          id="price"
+          label="Price"
+          field={draft.fields.price}
+          error={errorFor("price")}
+          inputMode="decimal"
+          placeholder="RM 1,250"
+          onChange={(value) => onEdit("price", value)}
+        />
+
+        <div>
+          <CategoryField
+            id="category"
+            value={draft.fields.category.value}
+            error={errorFor("category")}
+            onChange={(value) => onEdit("category", value)}
+          />
+          <span className={`field-status status-${draft.fields.category.status}`}>
+            {categoryMatchedFrom
+              ? `Matched from "${categoryMatchedFrom}" on the page. Change it if it is wrong.`
+              : STATUS_TEXT[draft.fields.category.status]}
+          </span>
+        </div>
       </div>
 
       {/* Open by default: the behavioural signal is built from these details, so they are
           recommended, not hidden. They still never block the check. */}
-      <details className="optional" open>
+      <details className="optional panel-card" open>
         <summary>Seller information (recommended)</summary>
         {sellerMissing && (
           <p className="notice">
             Seller details are not captured yet. The behavioural signal uses them, and without them
-            it is shown as unknown. Open the seller&apos;s page and click the GuardianLens icon
-            there, or type what you can see below.
+            it is shown as unknown.
+            {/* With the "Open seller page" button below, the button's note says how. */}
+            {!draft.sellerUrl &&
+              " Open the seller's page and click the GuardianLens icon there, or type what you can see below."}
           </p>
         )}
+        {draft.sellerUrl && (
+          <div>
+            <button type="button" className="button button-secondary" onClick={onOpenSeller}>
+              Open seller page
+            </button>
+            <p className="helper">
+              Opens the seller&apos;s page in a new tab. Click the GuardianLens icon there (it is
+              the capture button) to add their details to this check.
+            </p>
+          </div>
+        )}
+        <div>
+          <button type="button" className="button button-secondary" onClick={onCapture}>
+            Capture this page
+          </button>
+          <p className="helper">
+            Reads the page open in your browser now. Use it on the seller&apos;s page.
+          </p>
+        </div>
         <p className="helper">Missing seller details are treated as unknown, not as suspicious.</p>
         {SELLER_INPUTS.map(({ key, id, label, inputMode }) => (
           <TextField
@@ -305,6 +354,11 @@ export function ReviewView({
             field={draft.fields[key]}
             error={errorFor(key)}
             optional
+            notFoundText={
+              draft.platform === "mudah" && (key === "rating" || key === "reviewCount")
+                ? MUDAH_NO_RATINGS
+                : undefined
+            }
             inputMode={inputMode}
             onChange={(value) => onEdit(key, value)}
           />

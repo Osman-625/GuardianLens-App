@@ -54,7 +54,7 @@ Band colours are deliberately dark enough to work as text on white; tinted backg
 
 ### 3.2 Typography
 
-System-safe stack with one webfont: Inter (covers Malay diacritics for listing text display), fallback `system-ui, -apple-system, Segoe UI, Roboto, sans-serif`. Tabular numerals for the score.
+System-safe stack with one webfont: Public Sans, variable weight, Latin subset bundled locally (`@fontsource-variable/public-sans`; Chrome MV3 blocks remote fonts), covering English and Malay listing text; a size-matched Arial fallback limits layout shift, then `system-ui, -apple-system, Segoe UI, Roboto, sans-serif`. Tabular numerals for the score (verified: Public Sans has a working `tnum` feature).
 
 | Level | Size / line height | Weight | Use |
 | --- | --- | --- | --- |

@@ -8,7 +8,7 @@ import time
 from datetime import UTC, datetime
 
 from api.models.domain import AssessmentRecord
-from api.repositories.base import AssessmentRepository
+from api.repositories.assessments import AssessmentRepository
 from api.schemas import (
     AssessmentResultResponse,
     AssessmentStatus,
@@ -55,13 +55,47 @@ def _to_card(output: SignalOutput) -> SignalCard:
     )
 
 
+# The highest stub score of the Low band and of the Moderate band. Placeholders that only exercise
+# the interface.
+STUB_LOW_MAX = 33
+STUB_MODERATE_MAX = 66
+
+
 def _stub_band(score: int) -> RiskBand:
-    """Maps a stub score to a band with fixed development boundaries (33 and 66)."""
-    if score <= 33:
+    """Maps a stub score to a band with the fixed development boundaries above."""
+    if score <= STUB_LOW_MAX:
         return RiskBand.LOW
-    if score <= 66:
+    if score <= STUB_MODERATE_MAX:
         return RiskBand.MODERATE
     return RiskBand.HIGH
+
+
+class _Cancelled(Exception):
+    """The buyer cancelled the check while it was running."""
+
+
+def _raise_if_cancelled(assessment: AssessmentRecord, repository: AssessmentRepository) -> None:
+    """Raises _Cancelled when the stored copy of the assessment has been marked abandoned."""
+    stored = repository.get_assessment(assessment.id)
+    if stored is not None and stored.status == AssessmentStatus.ABANDONED:
+        raise _Cancelled
+
+
+def _begin_stage(
+    stage: PipelineStage, assessment: AssessmentRecord, repository: AssessmentRepository
+) -> None:
+    """Stops if the buyer cancelled; otherwise saves the stage as started, for the status page."""
+    _raise_if_cancelled(assessment, repository)
+    assessment.stage = stage
+    repository.save_assessment(assessment)
+
+
+def _clear_raw_inputs(assessment: AssessmentRecord) -> None:
+    """Drops the buyer's raw wording and the photo bytes: they are only needed for scoring."""
+    assessment.title_for_inference = ""
+    assessment.description_for_inference = ""
+    for image in assessment.images:
+        image.content = b""
 
 
 def run_development_assessment(
@@ -73,17 +107,18 @@ def run_development_assessment(
 
     Each stage is saved as it starts, so the status endpoint can report real progress. On success
     the result is stored and the assessment is marked complete; on any error it is marked failed
-    with a plain message and the error is raised again.
+    with a plain message and the error is raised again. If the buyer cancels, the next stage
+    check stops the run: the assessment stays abandoned, gets no result, and its raw inputs are
+    cleared. The repository never overwrites a cancelled check, so a result that finishes just
+    after the buyer pressed Cancel cannot undo it.
     """
 
     started = time.perf_counter()
     try:
-        assessment.stage = PipelineStage.VISUAL
-        repository.save_assessment(assessment)
+        _begin_stage(PipelineStage.VISUAL, assessment, repository)
         visual = models.run_visual(assessment) if models else run_visual_stub(assessment.images)
 
-        assessment.stage = PipelineStage.TEXTUAL
-        repository.save_assessment(assessment)
+        _begin_stage(PipelineStage.TEXTUAL, assessment, repository)
         textual = (
             models.run_textual(assessment)
             if models
@@ -92,16 +127,14 @@ def run_development_assessment(
             )
         )
 
-        assessment.stage = PipelineStage.BEHAVIOURAL
-        repository.save_assessment(assessment)
+        _begin_stage(PipelineStage.BEHAVIOURAL, assessment, repository)
         behavioural = (
             models.run_behavioural(assessment)
             if models
             else run_behavioural_stub(assessment.seller, assessment.price)
         )
 
-        assessment.stage = PipelineStage.FUSION
-        repository.save_assessment(assessment)
+        _begin_stage(PipelineStage.FUSION, assessment, repository)
         available = [
             output.probability
             for output in (visual, textual, behavioural)
@@ -114,11 +147,17 @@ def run_development_assessment(
             score = round(fused * 100)
             band = _stub_band(score)
 
-        assessment.stage = PipelineStage.EXPLANATION
-        repository.save_assessment(assessment)
-        missing_notices = [
-            output.summary for output in (visual, textual, behavioural) if not output.available
-        ]
+        _begin_stage(PipelineStage.EXPLANATION, assessment, repository)
+        outputs = (visual, textual, behavioural)
+        unknown = sum(1 for output in outputs if not output.available)
+        missing_notices = (
+            [
+                f"This score uses {len(outputs) - unknown} of {len(outputs)} signals. "
+                "The rest are treated as unknown, not as suspicious."
+            ]
+            if unknown
+            else []
+        )
         total_latency_ms = round((time.perf_counter() - started) * 1000)
         result = AssessmentResultResponse(
             assessment_id=assessment.id,
@@ -134,15 +173,18 @@ def run_development_assessment(
             total_latency_ms=total_latency_ms,
             development_stub=models is None,
         )
+        _raise_if_cancelled(assessment, repository)
         assessment.result = result
         assessment.status = AssessmentStatus.COMPLETE
         assessment.stage = None
         assessment.completed_at = datetime.now(UTC)
-        # The raw wording and the photo bytes are only needed for scoring; clear them now.
-        assessment.title_for_inference = ""
-        assessment.description_for_inference = ""
-        for image in assessment.images:
-            image.content = b""
+        _clear_raw_inputs(assessment)
+        repository.save_assessment(assessment)
+    except _Cancelled:
+        # Set again in case the stored copy is not this object: saving must not undo the cancel.
+        assessment.status = AssessmentStatus.ABANDONED
+        assessment.stage = None
+        _clear_raw_inputs(assessment)
         repository.save_assessment(assessment)
     except Exception:
         assessment.status = AssessmentStatus.FAILED
@@ -151,10 +193,6 @@ def run_development_assessment(
         assessment.error_message = (
             "The check could not be completed. Try again with the saved form."
         )
-        # A failed check also clears the raw wording and the photo bytes.
-        assessment.title_for_inference = ""
-        assessment.description_for_inference = ""
-        for image in assessment.images:
-            image.content = b""
+        _clear_raw_inputs(assessment)
         repository.save_assessment(assessment)
         raise

@@ -56,9 +56,9 @@ export const SLOW_WAIT_COPY =
 export const UNSEEN_CATEGORY_NOTE =
   "Price is compared with the overall average, not this category's average.";
 
-/** The fixed sentence for any signal that could not be computed. */
-export const UNAVAILABLE_SIGNAL_SENTENCE =
-  "Not enough information. Treated as unknown, not as suspicious.";
+/** Shown on the explanation page: why two results with the same number can have different bands. */
+export const BAND_ROUNDING_NOTE =
+  "Scores are rounded for display, but the band is decided from the unrounded score. Two results with the same number can therefore fall in different bands next to a boundary.";
 
 /** Retention statement shown beside every submit control (wording pends the approved retention period). */
 export const RETENTION_NOTICE =

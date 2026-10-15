@@ -1,5 +1,5 @@
 # Secret scan: looks through the project's text files for things that must never be committed
-# (a Supabase JWT, a private key, or an API key written into code). It prints the matching files
+# (a JSON web token, a private key, or an API key written into code). It prints the matching files
 # and exits with 1 if any are found, so CI can fail on it.
 from __future__ import annotations
 
@@ -11,14 +11,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKIP_PARTS = {".git", ".venv", ".conda", "node_modules", ".next", "runtime"}
 TEXT_SUFFIXES = {
-    ".py", ".ts", ".tsx", ".js", ".mjs", ".json",
-    ".yaml", ".yml", ".md", ".sql", ".txt", ".example",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".mjs",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".md",
+    ".sql",
+    ".txt",
+    ".example",
 }
 # One pattern per kind of secret, by the name used in the report.
 PATTERNS = {
-    "Supabase service-role JWT": re.compile(
-        r"eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}"
-    ),
+    "JSON web token": re.compile(r"eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}"),
     "Generic private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "Common API key assignment": re.compile(
         r"(?i)(api[_-]?key|secret[_-]?key|service[_-]?role[_-]?key)\s*[=:]\s*['\"][^'\"]{12,}['\"]"

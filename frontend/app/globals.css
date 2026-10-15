@@ -5,23 +5,42 @@
    @guardianlens/shared/styles.css, which layout.tsx loads first. Only rules that belong to a
    website page live here, so the same component looks identical in the extension's side panel. */
 
-/* ---- Site header ---------------------------------------------------------------------- */
+/* A short page still keeps the footer at the bottom of the window. */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+main.page {
+  flex: 1 0 auto;
+}
+/* Prose stays at a readable measure even in the 720px column. Tinted boxes (classed elements)
+   keep their full width so their edges line up. */
+:where(main.page) :where(p:not([class]), li:not([class]), .page-lead) {
+  max-width: 70ch;
+}
+
+/* ---- Site header and footer ------------------------------------------------------------ */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 20;
   border-bottom: 1px solid var(--color-border);
-  background: rgb(255 255 255 / 0.94);
-  backdrop-filter: blur(10px);
+  background: var(--color-surface);
 }
 .header-inner {
-  width: min(100% - 32px, 960px);
-  min-height: 64px;
+  width: min(100% - 2 * var(--space-lg), 1120px);
+  min-height: 68px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
+}
+.site-header nav {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
 }
 
 /* The header's links are tap targets: at least 44px tall, text centred in that height. */
@@ -31,85 +50,232 @@
   align-items: center;
   min-height: 44px;
 }
+.site-header nav a {
+  border-radius: var(--radius-input);
+  padding: 0 14px;
+  white-space: nowrap;
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition:
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+.site-header nav a:hover {
+  text-decoration: none;
+}
+.site-header nav a[aria-current="page"] {
+  background: var(--color-surface-tint);
+  color: var(--color-ink);
+}
+@media (hover: hover) and (pointer: fine) {
+  .site-header nav a:hover {
+    background: var(--color-surface-tint);
+    color: var(--color-ink);
+  }
+}
+.header-cta,
+.site-header nav .nav-wide-only {
+  display: none;
+}
+.header-cta {
+  min-height: 44px;
+  padding: 0 var(--space-lg);
+}
+
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-xl) 0;
+  color: var(--color-ink-faint);
+  font-size: var(--text-label);
+}
+.site-footer .header-inner {
+  min-height: 0;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-xl);
+}
 
 /* ---- Page frame (a single centred column) ---------------------------------------------- */
 .page {
-  width: min(100% - 32px, 720px);
+  width: min(100% - 2 * var(--space-lg), 720px);
   margin: 0 auto;
-  padding: 40px 0 72px;
+  padding: var(--space-2xl) 0 var(--space-4xl);
 }
 .page-wide {
-  width: min(100% - 32px, 1120px);
+  width: min(100% - 2 * var(--space-lg), 1120px);
 }
 .page-title {
-  margin: 0 0 8px;
-  font-size: 28px;
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-xl);
   line-height: 1.2;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
 }
 .page-lead {
-  margin: 0 0 28px;
+  margin: 0 0 var(--space-xl);
   color: var(--color-ink-muted);
+}
+.section-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  margin-bottom: var(--space-sm);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+.back-link .icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* ---- Landing page ---------------------------------------------------------------------- */
 .hero {
-  padding: 56px 0 36px;
+  padding: var(--space-xl) 0 var(--space-3xl);
 }
+/* The one fluid size on the site: the landing headline. */
 .hero h1 {
-  max-width: 680px;
+  max-width: 15ch;
   margin: 0;
-  font-size: clamp(34px, 7vw, 52px);
-  line-height: 1.08;
-  letter-spacing: -0.025em;
+  font-size: clamp(2.25rem, 1.4rem + 3.6vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
 }
-.hero p {
-  max-width: 620px;
-  margin: 20px 0 28px;
+.hero-accent {
+  display: block;
+  color: var(--color-primary);
+}
+.hero-lead {
+  max-width: 34rem;
+  margin: var(--space-lg) 0 var(--space-xl);
   color: var(--color-ink-muted);
-  font-size: 18px;
+  font-size: 1.125rem;
+}
+.hero .helper {
+  margin: 0 0 var(--space-lg);
+}
+.hero .dev-banner {
+  max-width: 34rem;
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-md);
 }
-.explainer-grid {
+.hero-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--space-lg) 0 0;
+  color: var(--color-ink-faint);
+  font-size: var(--text-sm);
+}
+.hero-note .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.install-card {
+  margin: 0 0 var(--space-4xl);
+}
+.install-steps {
+  margin: var(--space-md) 0 var(--space-lg);
+  padding-left: 22px;
+}
+.install-steps li {
+  margin: var(--space-sm) 0;
+}
+.install-steps li::marker {
+  color: var(--color-ink-faint);
+  font-weight: 650;
+}
+.install-steps code {
+  background: var(--color-surface-tint);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: var(--text-sm);
+}
+
+/* How it works: a ruled, numbered list beside its heading, read like the steps of a method
+   rather than three matching tiles. The numbers are CSS counters; the <ol> carries the order. */
+.process {
   display: grid;
-  gap: 12px;
-  margin: 24px 0 48px;
+  gap: var(--space-xl);
+  margin: 0 0 var(--space-3xl);
 }
-/* Each card takes two rows of the grid and shares them (subgrid), so the headings sit on one row
-   and the body texts start at the same height even when one heading wraps to two lines. */
-.explainer-grid > .explainer-card {
-  grid-row: span 2;
-  display: grid;
-  grid-template-rows: subgrid;
-  row-gap: 8px;
-  align-content: start;
-}
-.explainer-grid > .explainer-card h2,
-.explainer-grid > .explainer-card p {
+.steps {
+  counter-reset: step;
   margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  column-gap: var(--space-lg);
+  padding: var(--space-lg) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.steps li::before {
+  content: counter(step);
+  grid-row: span 2;
+  color: var(--color-primary);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+.steps h3 {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-lg);
+}
+.steps p {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+.scope-banner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-md);
+  border-color: var(--color-border);
+  background: var(--color-surface-tint);
+  padding: var(--space-lg) var(--space-xl) var(--space-lg) var(--space-lg);
+}
+.scope-banner > .icon {
+  margin-top: 2px;
+  color: var(--color-ink-muted);
 }
 
 /* ---- Manual submission form ------------------------------------------------------------ */
 .form-stack {
   display: grid;
-  gap: 20px;
+  gap: var(--space-lg);
 }
 .form-section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
-  padding: 20px;
+  box-shadow: var(--shadow-card);
+  padding: var(--space-xl);
 }
 .form-section h2 {
-  margin: 0 0 16px;
-  font-size: 20px;
+  margin: 0 0 var(--space-lg);
+  font-size: var(--text-lg);
 }
 .field-row {
   display: grid;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 /* The grid's own gap spaces these fields. The shared .field also has a bottom margin (except on the
    last child), which made the left field of a pair taller than the right one, so the right field's
@@ -117,37 +283,54 @@
 .field-row .field {
   margin-bottom: 0;
 }
+.field-row + .field {
+  margin-top: var(--space-lg);
+}
 .uploader {
   min-height: 132px;
-  border: 2px dashed #9ca8b7;
+  border: 2px dashed var(--color-control-border);
   border-radius: var(--radius-card);
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: var(--space-lg);
   text-align: center;
-  background: #fbfcfd;
+  background: var(--color-surface-alt);
+  transition:
+    border-color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out);
+}
+.uploader:focus-within,
+.uploader:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+.uploader .helper {
+  margin: var(--space-xs) 0 var(--space-sm);
 }
 .uploader input {
+  max-width: 100%;
   border: 0;
-  padding: 8px;
+  background: transparent;
+  padding: var(--space-sm);
 }
 .file-list {
-  margin: 12px 0 0;
+  margin: var(--space-md) 0 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .file-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: var(--radius-input);
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-md);
 }
 .file-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -155,169 +338,259 @@
 
 /* ---- Processing, result, and explanation pages ----------------------------------------- */
 .processing-card {
+  max-width: 520px;
+  margin: 0 auto;
   text-align: center;
 }
+.processing-card .stage-list {
+  max-width: 340px;
+  margin-inline: auto;
+}
 .action-row {
-  display: grid;
-  gap: 10px;
-  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
 }
 .explanation-section {
   scroll-margin-top: 88px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-lg);
 }
 /* The status word ("model check") reads the same here as on the result cards ("Model Check"). */
 .status-word {
   text-transform: capitalize;
 }
+/* Each reason leads with its direction in words ("raises risk"), so the direction never rests on
+   colour alone. */
 .reason-list {
-  margin: 14px 0 0;
+  margin: var(--space-lg) 0 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 .reason {
-  border-left: 3px solid var(--color-border);
-  padding-left: 12px;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-xs);
+  border-radius: var(--radius-input);
+  padding: var(--space-md);
+  background: var(--color-surface-alt);
 }
-.reason-raises {
-  border-color: var(--color-risk-high);
+.reason-direction {
+  border-radius: 999px;
+  padding: 0 var(--space-sm);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
 }
-.reason-lowers {
-  border-color: var(--color-risk-low);
+.reason-raises .reason-direction {
+  color: var(--color-risk-high);
+}
+.reason-lowers .reason-direction {
+  color: var(--color-risk-low);
 }
 .scope-note {
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #f5f7fa;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-alt);
   color: var(--color-ink-muted);
-  font-size: 14px;
+  font-size: var(--text-sm);
+}
+
+/* The result page: a large dial, then the signals beside the manual checks. */
+.page .score-region {
+  --dial: 120px;
+  padding: var(--space-xl);
+}
+.result-grid {
+  display: grid;
+  gap: var(--space-xl);
+  margin: var(--space-xl) 0;
+}
+.result-grid .signal-grid {
+  margin: 0;
+}
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0 var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.section-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.section-head .helper {
+  margin: 2px 0 0;
+}
+.section-head a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.section-head .icon {
+  width: 16px;
+  height: 16px;
+}
+.checks-card .helper {
+  margin: 0 0 var(--space-sm);
+}
+.result-page > .notice,
+.feedback-card {
+  margin-bottom: var(--space-lg);
+}
+.feedback-card form {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-lg);
+}
+.feedback-card form > * {
+  width: 100%;
+}
+.feedback-card form > .button {
+  width: auto;
+}
+.feedback-card form .field {
+  margin-bottom: 0;
 }
 
 /* ---- Session history ------------------------------------------------------------------- */
 .history-list {
   display: grid;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 .history-item {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-md);
   align-items: center;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--color-surface);
-  padding: 16px;
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
   color: var(--color-ink);
+  transition:
+    border-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 .history-item:hover {
   text-decoration: none;
-  border-color: #9eb5df;
+}
+.history-item:active {
+  transform: scale(0.99);
+}
+@media (hover: hover) and (pointer: fine) {
+  .history-item:hover {
+    border-color: var(--color-border-hover);
+  }
 }
 .history-title {
   font-weight: 650;
+  overflow-wrap: anywhere;
 }
 .history-meta {
   color: var(--color-ink-muted);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .history-score {
-  font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 56px;
+  border-radius: var(--radius-button);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--band-soft);
+  color: var(--band);
+  font-size: 1.375rem;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.history-score .icon {
+  width: 18px;
+  height: 18px;
 }
 .empty-state {
-  text-align: center;
-  padding: 40px 20px;
-}
-
-/* ---- Admin (the one surface where density beats simplicity) ---------------------------- */
-.admin-grid {
   display: grid;
-  gap: 16px;
+  justify-items: center;
+  gap: var(--space-md);
+  text-align: center;
+  padding: var(--space-3xl) var(--space-xl);
 }
-.table-wrap {
-  overflow-x: auto;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-th,
-td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
-  vertical-align: top;
-}
-th {
-  color: var(--color-ink-muted);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
+.card.empty-state h2,
+.card.empty-state p {
+  margin: 0;
 }
 
 .footer-note {
-  margin-top: 36px;
+  margin-top: var(--space-2xl);
   color: var(--color-ink-muted);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
-/* ---- Responsive ------------------------------------------------------------------------ */
-@media (min-width: 680px) {
-  .explainer-grid {
-    grid-template-columns: repeat(3, 1fr);
+/* ---- Responsive (mobile first: these only add to the single-column layout above) ------- */
+@media (min-width: 640px) {
+  .site-header nav .nav-wide-only {
+    display: inline-flex;
   }
+}
+@media (min-width: 680px) {
   .field-row {
     grid-template-columns: 1fr 1fr;
   }
-  .action-row {
-    grid-template-columns: 1fr 1fr;
+}
+@media (min-width: 760px) {
+  .header-cta {
+    display: inline-flex;
   }
-  .admin-grid {
-    grid-template-columns: 260px 1fr;
+  .site-header nav {
+    justify-content: flex-start;
+    margin-left: var(--space-lg);
+  }
+  .page {
+    padding-top: var(--space-3xl);
+  }
+}
+@media (min-width: 900px) {
+  .hero {
+    padding: var(--space-3xl) 0 var(--space-4xl);
+  }
+  .process {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--space-3xl);
+    margin-bottom: var(--space-4xl);
+  }
+  .page .score-region {
+    --dial: 140px;
+    padding: var(--space-2xl);
+  }
+  .result-grid {
+    grid-template-columns: 1.5fr 1fr;
+    align-items: start;
   }
 }
 
 @media (max-width: 480px) {
-  .page {
-    padding-top: 28px;
-  }
-  .hero {
-    padding-top: 36px;
-  }
   .hero-actions .button {
     width: 100%;
   }
-  .site-header nav a {
-    font-size: 14px;
+  .form-section,
+  .card {
+    padding: var(--space-lg);
   }
-  .form-section {
-    padding: 16px;
+  .page .score-region {
+    --dial: 112px;
+    padding: var(--space-lg);
   }
-}
-
-/* ---- Landing page: extension install steps --------------------------------------------- */
-.install-card {
-  margin: 0 0 24px;
-}
-.install-steps {
-  margin: 12px 0 16px;
-  padding-left: 22px;
-}
-.install-steps li {
-  margin: 8px 0;
-}
-.install-steps code {
-  background: var(--color-surface-alt);
-  border-radius: 6px;
-  padding: 1px 6px;
-  font-size: 14px;
 }

@@ -50,14 +50,14 @@ class SellerInput:
 class AssessmentRecord:
     """One assessment: its session, inputs, progress, and result.
 
-    The `_scrubbed` texts have contact details removed and are the ones shown in history and
-    exports; the `_for_inference` texts keep the buyer's own wording for the models to read.
+    The scrubbed title has contact details removed and is the one stored and shown in history.
+    The `_for_inference` texts keep the buyer's own wording for the models to read; they are never
+    stored.
     """
 
     session_id: UUID
     platform: str
     title_scrubbed: str
-    description_scrubbed: str
     title_for_inference: str
     description_for_inference: str
     category: str

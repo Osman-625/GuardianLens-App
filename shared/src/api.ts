@@ -72,6 +72,22 @@ const BAD_RESPONSE: ApiError = {
 };
 
 /**
+ * Reads the body of a failed response as the API's error envelope. A body that is not that
+ * envelope (an HTML error page from a proxy, plain text, nothing) gives the "bad_response" error,
+ * so a caller can always show a message and never has to handle a thrown parse error.
+ */
+export async function readApiError(response: Response): Promise<ApiError> {
+  try {
+    const body = (await response.json()) as Partial<ApiError> | null;
+    // Only trust a body that really is the documented error envelope.
+    if (body?.error?.code && body.error.message) return body as ApiError;
+  } catch {
+    // Not JSON: fall through to the stand-in below.
+  }
+  return BAD_RESPONSE;
+}
+
+/**
  * Creates an API client.
  * @param options Base URL (no trailing slash needed), the session transport, and an optional
  *                fetch override for tests.
@@ -106,17 +122,7 @@ export function createClient(options: ClientOptions) {
 
   /** Parses a response: throws on error statuses, returns undefined for 204, JSON otherwise. */
   async function read<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-      let payload: ApiError = BAD_RESPONSE;
-      try {
-        const body = (await response.json()) as Partial<ApiError> | null;
-        // Only trust a body that really is the documented error envelope.
-        if (body?.error?.code && body.error.message) payload = body as ApiError;
-      } catch {
-        payload = BAD_RESPONSE;
-      }
-      throw new GuardianLensApiError(response.status, payload);
-    }
+    if (!response.ok) throw new GuardianLensApiError(response.status, await readApiError(response));
     if (response.status === 204) return undefined as T;
     return (await response.json()) as T;
   }

@@ -37,12 +37,11 @@ The `trained` extra pins NumPy, pandas, scikit-learn and XGBoost to the selected
 Set these values in `.env`:
 
 ```dotenv
-GUARDIANLENS_STUB_MODE=true
 GUARDIANLENS_INFERENCE_MODE=trained
 GUARDIANLENS_MODEL_RUN_DIR="../GuardianLens_Training/Drive_Artifacts_2026-10-06/runs/20261002_062026_colab_v3_noMeta"
 ```
 
-`GUARDIANLENS_STUB_MODE=true` selects local session storage independently of inference. Keep it enabled for local use; `GUARDIANLENS_INFERENCE_MODE=trained` selects the saved models. Restart the API from `GuardianLens_codebase` after changing the environment. Trained mode fails at startup if required fitted artifacts are missing and never silently falls back to development scores.
+`GUARDIANLENS_INFERENCE_MODE=trained` selects the saved models. Restart the API from `GuardianLens_codebase` after changing the environment. Trained mode fails at startup if required fitted artifacts are missing and never silently falls back to development scores.
 
 ## Visual assets
 
@@ -63,7 +62,7 @@ After installing dependencies and restarting the API:
 
 1. Check `GET /health`: inference must be trained, the active bundle must be `20261002_062026_colab_v3_noMeta`, required artifacts must be present, and visual readiness must be true for all three signals to work.
 2. Submit a new assessment with a valid listing photo and text. Confirm `development_stub=false`, the selected `model_bundle_label`, and available textual, behavioural and visual signal cards with probabilities.
-3. Confirm the website displays that new trained result. The admin bundles endpoint reports the real components and exact trained threshold percentages.
+3. Confirm the website displays that new trained result. `GET /health` names the active bundle.
 
 Assessments use the saved probability boundaries (approximately 16.3244% and 46.6517%). Bands are assigned using the unrounded probability.
 

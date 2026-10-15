@@ -46,14 +46,22 @@ export function ResultView({
   return (
     <section className="panel-section">
       {result.development_stub && <DevBanner />}
-      <h1 className="panel-title">{result.title}</h1>
+      <div>
+        <p className="eyebrow">Assessment complete</p>
+        <h1 className="panel-title">{result.title}</h1>
+      </div>
       {notice && (
         <p className="notice" role="status">
           {notice}
         </p>
       )}
 
-      <ScoreRegion score={result.score} band={result.band} disclaimer={result.disclaimer} />
+      <ScoreRegion
+        id={result.assessment_id}
+        score={result.score}
+        band={result.band}
+        disclaimer={result.disclaimer}
+      />
 
       <div className="signal-grid">
         {result.signal_cards.map((card) => (
@@ -77,7 +85,7 @@ export function ResultView({
           <strong>Seller details were not included</strong>
           <p>
             The behavioural signal is unknown without them. To include them, open the seller&apos;s
-            page, click the GuardianLens icon there, then check the listing again.
+            page, click the GuardianLens icon there, then press Check listing again.
           </p>
         </section>
       )}
@@ -107,7 +115,7 @@ export function ResultView({
               <button
                 key={verdict}
                 type="button"
-                className="button button-secondary"
+                className={`button button-secondary feedback-${verdict}`}
                 disabled={feedback === "saving"}
                 onClick={() => onFeedback(verdict)}
               >

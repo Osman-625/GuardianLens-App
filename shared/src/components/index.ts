@@ -10,3 +10,4 @@ export type { ScoreRegionProps } from "./ScoreRegion";
 export { SignalCardView } from "./SignalCardView";
 export type { SignalCardViewProps } from "./SignalCardView";
 export { StageList } from "./StageList";
+export { Wordmark } from "./Wordmark";

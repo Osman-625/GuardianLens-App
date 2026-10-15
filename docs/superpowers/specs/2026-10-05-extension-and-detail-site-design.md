@@ -1,5 +1,7 @@
 # GuardianLens: Browser Extension and Detail Site Design
 
+> Note (2026-10-15): the admin page and Supabase mentioned below were removed. See `docs/CHANGES_FROM_SPEC.md`.
+
 **Date:** 2026-10-05
 **Status:** Draft for review. Brainstormed with the developer; the four design sections below were each approved in conversation.
 **Revision (same day):** the developer directed that the trained models in `GuardianLens_Training` be used and that useful work from the Data Collector and URL Crawler be reused inside this codebase. Section 8 (model serving) is new, and sections 2, 3, 5, 9, 10, 11, and 12 changed accordingly.

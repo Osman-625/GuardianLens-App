@@ -8,7 +8,7 @@ from api.settings import get_settings
 
 
 def test_tests_run_in_stub_mode_whatever_the_local_env_file_says() -> None:
-    """The settings seen by a test are stub inference and in-memory storage."""
+    """The settings seen by a test are stub inference and an in-memory database."""
     settings = get_settings()
     assert settings.guardianlens_inference_mode == "stub"
-    assert settings.guardianlens_stub_mode is True
+    assert str(settings.guardianlens_database_path) == ":memory:"

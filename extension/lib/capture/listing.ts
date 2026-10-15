@@ -24,7 +24,7 @@
 // Code here runs inside the injected capture script on the buyer's click. It must stay free of
 // network calls and of anything that changes the page.
 import { matchTrainedCategory, type Platform } from "@guardianlens/shared";
-import { classifyListingUrl } from "./classify";
+import { classifyListingUrl, classifySellerUrl } from "./classify";
 import { selectGalleryImages, type ImageCandidate } from "./images";
 import { PLATFORM_SELECTORS, type PlatformSelectors } from "./selectors";
 import {
@@ -553,6 +553,23 @@ export function detectPageState(doc: Document, pathname: string): BlockedState |
   return null;
 }
 
+/**
+ * The link to the seller's profile on a listing page, or null. Only a link to a seller page of the
+ * SAME marketplace counts (Carousell and Mudah profiles are /u/<name>); real Carousell listing
+ * pages carry one almost every time, real Mudah ones mostly do not.
+ */
+function findSellerUrl(doc: Document, baseUrl: string, platform: Platform): string | null {
+  for (const anchor of Array.from(doc.querySelectorAll<HTMLAnchorElement>("a[href]"))) {
+    try {
+      const absolute = new URL(anchor.getAttribute("href") ?? "", baseUrl).href;
+      if (classifySellerUrl(absolute)?.platform === platform) return absolute;
+    } catch {
+      // Not a URL (for example "javascript:"); keep looking.
+    }
+  }
+  return null;
+}
+
 // ---- Public entry point ---------------------------------------------------------------------
 
 /** Options for captureListing. `selectors` lets tests supply their own platform selectors. */
@@ -640,6 +657,7 @@ export function captureListing(
     price: field(price),
     category: field(category),
     imageUrls,
+    sellerUrl: findSellerUrl(doc, url, ref.platform),
     pageState,
   };
 }

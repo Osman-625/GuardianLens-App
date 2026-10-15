@@ -3,13 +3,16 @@
 //   - if no photo can be prepared, nothing is submitted and the buyer is told;
 //   - a field error on submit returns to Review with input kept; other errors are a calm failure;
 //   - the "taking longer than usual" notice appears once, after the threshold, with no percentages;
-//   - the runner stops when the buyer cancels, and gives up after two minutes rather than polling forever.
+//   - the runner stops when the buyer cancels, and gives up after two minutes rather than polling forever;
+//   - a check dropped after the server accepted it is cancelled on the server, so it is not finished unseen;
+//   - a request that never reached the server is retried a few times before the check fails.
 // Time is faked: `wait` returns immediately, so these tests run instantly.
 import { GuardianLensApiError, type AssessmentStatusResponse } from "@guardianlens/shared";
 import { describe, expect, it, vi } from "vitest";
 import { buildForm, draftFromListing } from "../../lib/panel/draft";
 import {
   GIVE_UP_AFTER_MS,
+  NETWORK_RETRIES,
   POLL_INTERVAL_MS,
   SLOW_AFTER_MS,
   runCheck,
@@ -46,6 +49,7 @@ function fakeDeps(statuses: AssessmentStatusResponse[], overrides: Partial<Check
       async (_id: string) => statuses[Math.min(call++, statuses.length - 1)] ?? complete,
     ),
     getResult: vi.fn(async (_id: string) => sampleResult()),
+    cancel: vi.fn(async (_id: string) => undefined),
   };
   const deps: CheckDeps = {
     client,
@@ -159,6 +163,72 @@ describe("runCheck", () => {
       isCancelled: () => cancelled,
     });
     expect(await runCheck(draft, deps)).toEqual({ status: "cancelled" });
+  });
+
+  it("tells the server to stop a check that was dropped after it was accepted", async () => {
+    let dropped = false;
+    const { deps, client } = fakeDeps([processing("visual"), processing("textual"), complete], {
+      onStage: () => {
+        dropped = true;
+      },
+      isCancelled: () => dropped,
+    });
+    expect(await runCheck(draft, deps)).toEqual({ status: "cancelled" });
+    expect(client.cancel).toHaveBeenCalledTimes(1);
+    expect(client.cancel).toHaveBeenCalledWith("a1");
+  });
+
+  it("sends nothing to the server when it was dropped while the photos were prepared", async () => {
+    const { deps, client } = fakeDeps([complete], { isCancelled: () => true });
+    expect(await runCheck(draft, deps)).toEqual({ status: "cancelled" });
+    expect(client.submit).not.toHaveBeenCalled();
+    expect(client.cancel).not.toHaveBeenCalled();
+  });
+
+  it("does not let a failed cancel request break anything", async () => {
+    let dropped = false;
+    const { deps, client } = fakeDeps([processing("visual"), complete], {
+      onStage: () => {
+        dropped = true;
+      },
+      isCancelled: () => dropped,
+    });
+    client.cancel.mockRejectedValueOnce(new Error("offline"));
+    expect(await runCheck(draft, deps)).toEqual({ status: "cancelled" });
+  });
+
+  const lost = () =>
+    new GuardianLensApiError(0, {
+      error: { code: "network_unreachable", message: "Can't reach the service.", field: null },
+    });
+
+  it("tries a status request again when it never reached the server", async () => {
+    const { deps, client } = fakeDeps([complete]);
+    client.getStatus.mockRejectedValueOnce(lost()).mockRejectedValueOnce(lost());
+    expect(await runCheck(draft, deps)).toMatchObject({ status: "done" });
+    expect(client.getStatus).toHaveBeenCalledTimes(3);
+    expect(client.submit).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up with 'unreachable' after the retries are used up", async () => {
+    const { deps, client } = fakeDeps([complete]);
+    client.getStatus.mockRejectedValue(lost());
+    expect(await runCheck(draft, deps)).toMatchObject({
+      status: "error",
+      error: { target: "failure", kind: "unreachable" },
+    });
+    expect(client.getStatus).toHaveBeenCalledTimes(NETWORK_RETRIES + 1);
+  });
+
+  it("does not retry an answer the server really gave", async () => {
+    const { deps, client } = fakeDeps([complete]);
+    client.getStatus.mockRejectedValue(
+      new GuardianLensApiError(404, {
+        error: { code: "not_found", message: "Not found.", field: null },
+      }),
+    );
+    await runCheck(draft, deps);
+    expect(client.getStatus).toHaveBeenCalledTimes(1);
   });
 
   it("says it is taking longer than usual exactly once", async () => {

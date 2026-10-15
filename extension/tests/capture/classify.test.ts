@@ -78,6 +78,14 @@ describe("classifySellerUrl", () => {
     });
   });
 
+  it("recognises a Mudah profile page, which is /u/<name> too (as in real captures)", () => {
+    expect(classifySellerUrl("https://www.mudah.my/u/some-seller")).toEqual({
+      platform: "mudah",
+      host: "www.mudah.my",
+    });
+    expect(classifySellerUrl("https://mudah.my/u/some-seller/")?.platform).toBe("mudah");
+  });
+
   it("recognises a generic seller or shop path", () => {
     expect(classifySellerUrl("https://www.mudah.my/shop/some-shop")?.platform).toBe("mudah");
   });

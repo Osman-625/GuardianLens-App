@@ -11,6 +11,7 @@
 //   - nothing is silently shortened: text over the API limits is a validation error, not cut off;
 //   - all functions are pure (they return a new draft), so they are easy to test.
 import {
+  LIMITS,
   resolveCategory,
   type CaptureFieldStatus,
   type CaptureMetaPayload,
@@ -55,18 +56,18 @@ export interface Draft {
   photos: DraftPhoto[];
   /** The photos selected when the page was captured; used to tell whether the buyer changed them. */
   defaultPhotoUrls: string[];
+  /** The seller's profile page found on the listing page, for "Open seller page". Never submitted. */
+  sellerUrl: string | null;
+  /** The category exactly as the page showed it, so Review can say when it was matched to another. */
+  pageCategory?: string | null;
 }
 
 /** Validation errors by field (plus "photos"). An empty object means the draft can be submitted. */
 export type DraftErrors = Partial<Record<DraftFieldKey | "photos", string>>;
 
-/** The API's limits. Text over a limit is reported, never cut. */
-export const LIMITS = {
-  title: 180,
-  description: 5000,
-  category: 80,
-  photos: 10,
-} as const;
+// The API's limits live in shared/ so the website form uses the same numbers. Text over a limit is
+// reported, never cut.
+export { LIMITS };
 
 /** A fresh "not found" field (a function so no two fields share one object). */
 const notFound = (): DraftField => ({ value: "", status: "not_found" });
@@ -104,6 +105,8 @@ export function draftFromListing(listing: CapturedListing): Draft {
     },
     photos,
     defaultPhotoUrls: photos.filter((photo) => photo.selected).map((photo) => photo.url),
+    sellerUrl: listing.sellerUrl,
+    pageCategory: listing.category.value,
   };
 }
 
@@ -232,6 +235,8 @@ export function buildCaptureMeta(draft: Draft): CaptureMetaPayload {
       title: fields.title.status,
       description: fields.description.status,
       price: fields.price.status,
+      // shortcut: a category matched to a trained one (see resolveCategory) is still reported as
+      // "captured"; the API has no "matched" status, so telling them apart needs a schema change.
       category: fields.category.status,
       platform: "captured",
       images: imagesStatus(draft),

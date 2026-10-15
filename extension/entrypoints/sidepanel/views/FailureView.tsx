@@ -22,7 +22,7 @@ export function FailureView({ kind, message, onRetry, onOpenSite }: FailureViewP
         {message}
       </p>
       {kind === "unreachable" && (
-        <p className="helper">Start the GuardianLens API on this computer, then try again.</p>
+        <p className="helper">Ask the researcher to check that it is running, then try again.</p>
       )}
       <button type="button" className="button button-primary button-full" onClick={onRetry}>
         Try again

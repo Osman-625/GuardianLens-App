@@ -40,6 +40,17 @@ describe("parseAccountAgeDays", () => {
     },
   );
 
+  it.each([
+    // The real header (2026-10): the duration is written before "Joined", the bio follows it.
+    ["5.0 52 reviews 10m 22d Joined Follow Gaming PCs. Trusted for 5 years.", 322],
+    ["1y 2m 3d Joined", 365 + 60 + 3],
+    ["8m Joined", 240],
+    ["22d Joined", 22],
+    ["5.052 reviews10m 22dJoined Best custom PCs", 322],
+  ])("reads the abbreviated duration before Joined in %s", (text, days) => {
+    expect(parseAccountAgeDays(text, NOW)).toBe(days);
+  });
+
   it("does not guess from a year alone", () => {
     expect(parseAccountAgeDays("Member since 2019", NOW)).toBeNull();
   });
@@ -51,6 +62,75 @@ describe("parseAccountAgeDays", () => {
   it("rejects a join date in the future and an impossible date", () => {
     expect(parseAccountAgeDays("Joined 1 Jan 2030", NOW)).toBeNull();
     expect(parseAccountAgeDays("Joined 31 Feb 2020", NOW)).toBeNull();
+  });
+});
+
+// The wording below is copied from real Carousell pages saved by the Data Collector (2026-09, names
+// removed): the seller card reads "<rating> <n> reviews <duration> on Carousell".
+describe("Carousell's seller card wording", () => {
+  it.each([
+    [
+      "Meet the seller Profile details 4.7 66 reviews 5 years on Carousell Reviews for 4.7 (66)",
+      1825,
+    ],
+    ["Professional Seller 5.0 58 reviews 11 months on Carousell Reviews for 5.0 (58)", 330],
+    ["Professional Seller 5.0 1 review 4 years on Carousell Reviews for 5.0 (1)", 1460],
+    ["Profile details 4.9 78 reviews 61 Orders 12 years on Carousell Make Offer Chat", 4380],
+    ["Profile details N/A No review yet 2 months on Carousell Make Offer Chat", 60],
+  ])("reads the account age in %s", (text, days) => {
+    expect(parseAccountAgeDays(text, NOW)).toBe(days);
+  });
+
+  it("reads years and months together", () => {
+    expect(parseAccountAgeDays("4.7 66 reviews 1 year 3 months on Carousell", NOW)).toBe(455);
+  });
+
+  it.each([
+    ["Profile details 4.7 66 reviews 5 years on Carousell Reviews for 4.7 (66)", 4.7, 66],
+    ["Professional Seller 5.0 1 review 4 years on Carousell", 5, 1],
+    ["Profile details 4.9 78 reviews 61 Orders 12 years on Carousell", 4.9, 78],
+    ["Contact details 5.0 127 reviews 4 years on Carousell", 5, 127],
+    ["Profile details 5.0 1,205 reviews 9 years on Carousell", 5, 1205],
+  ])("reads the rating and review count in %s", (text, rating, reviewCount) => {
+    expect(parseReviewStats(text)).toEqual({ rating, reviewCount });
+  });
+
+  it("reads 'N/A No review yet' as zero reviews and a 0.0 rating", () => {
+    expect(
+      parseReviewStats("Profile details N/A No review yet 2 months on Carousell No reviews for X"),
+    ).toEqual({ rating: 0, reviewCount: 0 });
+  });
+
+  it("does not mistake an app-store banner for the seller's reviews", () => {
+    // Mudah pages carry "Scan QR to Download App 4.7 200K+ reviews" for the Mudah app itself.
+    expect(parseReviewStats("Scan QR to Download App 4.7 200K+ reviews Company X")).toEqual({
+      rating: null,
+      reviewCount: null,
+    });
+  });
+
+  it("does not read a duration that is not about the account", () => {
+    expect(parseAccountAgeDays("Item used for 3 years on and off", NOW)).toBeNull();
+    expect(parseAccountAgeDays("Active on Carousell", NOW)).toBeNull();
+  });
+
+  it("still reads the card's duration when the page also has a 'Joined' line it cannot use", () => {
+    expect(
+      parseAccountAgeDays(
+        "Profile details 4.7 66 reviews 5 years on Carousell Joined since: Nov 2022",
+        NOW,
+      ),
+    ).toBe(1825);
+  });
+
+  it("prefers a duration stated after 'Joined' to the card's", () => {
+    expect(parseAccountAgeDays("5 years on Carousell. Joined 8 months ago", NOW)).toBe(240);
+  });
+
+  it("keeps a Mudah month-and-year join date unread, as the training data did", () => {
+    // Real Mudah wording: "Company X Joined since: Nov 2022". Only 29 of 858 Mudah training rows
+    // had an account age, so a month-and-year is deliberately not turned into a day count.
+    expect(parseAccountAgeDays("Company X Joined since: Nov 2022 Share this ad", NOW)).toBeNull();
   });
 });
 
@@ -208,5 +288,56 @@ describe("a listing title that merely contains the word sold", () => {
         </ul></body></html>`,
     );
     expect(countActiveListings(doc, "carousell", BASE)).toBe(2);
+  });
+});
+
+// The two seller pages as they read on 2026-10-10 (names removed): the same lines in the same order,
+// one element per line, which is how a real browser's text reads.
+describe("live seller pages", () => {
+  const TODAY = new Date(Date.UTC(2026, 9, 10));
+
+  it("reads a Carousell profile whose header says '10m 22d Joined'", () => {
+    const doc = parseHtml(`<body>
+      <h1>Apex PC</h1><div>Professional seller</div>
+      <div>5.0</div>
+      <div>52 reviews</div>
+      <div>10m 22d</div>
+      <div>Joined</div>
+      <div>Best custom PCs. Sold 50+ gaming PCs for 5 years.</div>
+      <h2>Listings</h2>
+      <ul><li><a href="/p/am5-pc-1464077911/">AM5 PC RM1,788</a></li>
+          <li><a href="/p/gaming-pc-1464077922/">Gaming PC RM1,799</a></li></ul>
+    </body>`);
+    expect(
+      parseSellerPage(doc, "carousell", "https://www.carousell.com.my/u/apex-pc/", TODAY),
+    ).toEqual({
+      accountAgeDays: 322,
+      rating: 5,
+      reviewCount: 52,
+      activeListingCount: 2,
+    });
+  });
+
+  it("reads a Mudah profile: a join date and the ad counts, and no rating or reviews", () => {
+    const doc = parseHtml(`<body>
+      <div>Get App</div><h1>adam raifal</h1><div>Direct Owners</div>
+      <div>Joined Since</div>
+      <div>24 Aug 2026</div>
+      <div>Verified</div>
+      <div>2</div>
+      <div>TOTAL ADS</div>
+      <div>1</div>
+      <div>AVAILABLE ADS</div>
+      <div>1</div>
+      <div>SOLD</div>
+      <h2>Available Ads</h2><a href="/samsung-s10-plus-115633015.htm">Samsung s10 plus RM 350</a>
+      <h2>Sold Ads</h2><a href="/pova-slim-5g-115000001.htm">pova slim 5G RM 650</a>
+    </body>`);
+    expect(parseSellerPage(doc, "mudah", "https://www.mudah.my/u/seller-18779289", TODAY)).toEqual({
+      accountAgeDays: 47,
+      rating: null,
+      reviewCount: null,
+      activeListingCount: 1,
+    });
   });
 });

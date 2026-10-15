@@ -4,17 +4,24 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import io
 import json
+import logging
 import math
 import sys
 import threading
 from pathlib import Path
 from typing import Any, Literal
+from uuid import uuid4
 
-from api.models.domain import AssessmentRecord
+from PIL import Image
+
+from api.models.domain import AssessmentRecord, ImageInput, SellerInput
 from api.schemas import RiskBand, SignalName, SignalReason
 from api.services.pipelines import SignalOutput
 from api.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 # The files a trained run folder must contain: its metadata, the three signal models (text T,
 # behaviour B, visual V), and the saved fusion model.
@@ -24,6 +31,37 @@ ARTIFACTS = ("run.json", "models/T.joblib", "models/B.joblib", "models/V.joblib"
 def missing_artifacts(run_dir: Path) -> list[str]:
     """Lists the required files that are absent from a trained run folder (empty when complete)."""
     return [name for name in ARTIFACTS if not (run_dir / name).is_file()]
+
+
+# Shown with the behavioural signal. In the training listings sellers with a full profile were
+# flagged risky more often than sellers without one (38% against 19% on Carousell, where profiles
+# are common; 12% on Mudah, where they almost never appear), and a higher rating did not lower it.
+_BEHAVIOURAL_LIMIT = (
+    "This signal is learned from annotated listings, not a judgement of the seller. In those "
+    "listings, sellers with a full profile (rating, reviews, account age) were flagged risky more "
+    "often than sellers without one, and a higher rating did not lower that. A good profile does "
+    "not mean a safe listing."
+)
+
+# How a reason reads as a sentence about THIS listing: 'The seller rating (4.8) raised this
+# signal's risk estimate.' It states what happened in this check, never a general rule.
+_VERB = {"raises": "raised", "lowers": "lowered"}
+_TAIL = "this signal's risk estimate."
+
+
+def _shown_value(key: str, value: Any) -> str:
+    """The listing's own value for a feature, as " (4.8)", or "" when it is not a plain number."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return ""
+    if not math.isfinite(number):
+        return ""
+    text = {
+        "price": f"RM {number:,.2f}".removesuffix(".00"),
+        "account_age_days": f"{number:.0f} days",
+    }.get(key, f"{number:g}")
+    return f" ({text})"
 
 
 def _probability(value: Any) -> float:
@@ -96,13 +134,12 @@ class TrainedModels:
             raise RuntimeError("The model run must contain V, T and B fusion inputs.")
         self.lock = threading.Lock()
         self.visual_engine: Any = None
-        self.visual_unavailable: str | None = None
         try:
             from api.services.trained_visual import TrainedVisual
 
             self.visual_engine = TrainedVisual(self.workspace, self.cfg, self.meta)
         except (FileNotFoundError, ImportError) as exc:
-            self.visual_unavailable = str(exc)
+            logger.warning("Visual scoring is unavailable: %s", exc)
 
     def frame(self, assessment: AssessmentRecord) -> Any:
         """Builds the one-row table of inputs that the text and behavioural models read."""
@@ -149,7 +186,7 @@ class TrainedModels:
                 SignalReason(
                     feature_key=f"tfidf_word_{i}",
                     direction=direction,
-                    display_text=f'The wording "{names[i]}" {direction} the text model score.',
+                    display_text=f'The wording "{names[i]}" {_VERB[direction]} {_TAIL}',
                     rank=len(reasons) + 1,
                 )
             )
@@ -189,6 +226,7 @@ class TrainedModels:
             "review_count": "The review count",
             "active_listing_count": "The active listing count",
         }
+        row = frame.iloc[0]
         reasons: list[SignalReason] = []
         for key in effects.abs().sort_values(ascending=False).index:
             if (
@@ -204,7 +242,9 @@ class TrainedModels:
                 SignalReason(
                     feature_key=key,
                     direction=direction,
-                    display_text=f"{names[key]} {direction} the behavioural model score.",
+                    display_text=(
+                        f"{names[key]}{_shown_value(key, row.get(key))} {_VERB[direction]} {_TAIL}"
+                    ),
                     rank=len(reasons) + 1,
                 )
             )
@@ -220,10 +260,11 @@ class TrainedModels:
             reasons=reasons,
             scope_note=(
                 f"{missing} seller fields are unknown. "
-                "The trained model uses missingness flags; no seller values were invented."
+                "The trained model uses missingness flags; no seller values were invented. "
                 if missing
-                else None
-            ),
+                else ""
+            )
+            + _BEHAVIOURAL_LIMIT,
         )
 
     def run_visual(self, assessment: AssessmentRecord) -> SignalOutput:
@@ -238,10 +279,7 @@ class TrainedModels:
                 probability=None,
                 available=False,
                 status_word="limited information",
-                summary=(
-                    "Visual scoring is unavailable because the CLIP/SSCD assets "
-                    "or approved reference embeddings are missing."
-                ),
+                summary="Photo check unavailable right now. Treated as unknown, not as suspicious.",
                 scope_note=(
                     "The fusion model receives a missing visual signal, "
                     "not a development test score."
@@ -252,6 +290,8 @@ class TrainedModels:
             X = table[self.visual.cols].astype(float).fillna(0).to_numpy()
             p = _probability(self.visual.model.predict_proba(self.visual.scaler.transform(X))[0, 1])
             effects = self.visual.scaler.transform(X)[0] * self.visual.model.coef_[0]
+            # Only the photo count is a plain number a buyer can check; similarity scores are not.
+            shown = {"n_images": table["n_images"].iloc[0]} if "n_images" in table else {}
         names = {
             "clip_title_mean": "Photo and title consistency",
             "clip_title_min": "The least consistent photo and title",
@@ -271,8 +311,8 @@ class TrainedModels:
                 feature_key=key,
                 direction="raises" if effect > 0 else "lowers",
                 display_text=(
-                    f"{names.get(key, key)} "
-                    f"{'raises' if effect > 0 else 'lowers'} the visual model score."
+                    f"{names.get(key, key)}{_shown_value(key, shown.get(key))} "
+                    f"{_VERB['raises' if effect > 0 else 'lowers']} {_TAIL}"
                 ),
                 rank=i,
             )
@@ -291,6 +331,31 @@ class TrainedModels:
             reasons=reasons,
             scope_note="Image similarity is limited to the approved training reference corpus.",
         )
+
+    def warm_up(self) -> None:
+        """Runs one throwaway check, so the first buyer does not pay the first model call's cost.
+
+        On a cold start that cost was about 70 seconds (framework set-up and reading the weights
+        from disk) against under a second for every later check. A broken model fails here, at
+        start-up, not in front of a buyer.
+        """
+        photo = io.BytesIO()
+        Image.new("RGB", (224, 224), (200, 200, 200)).save(photo, format="JPEG")
+        record = AssessmentRecord(
+            session_id=uuid4(),
+            platform="other",
+            title_scrubbed="warm up",
+            title_for_inference="warm up",
+            description_for_inference="warm up",
+            category="Other",
+            price=100.0,
+            language_detected="en",
+            seller=SellerInput(),
+            images=[ImageInput("warm-up.jpg", "image/jpeg", photo.getvalue(), "0" * 64, 224, 224)],
+        )
+        self.run_visual(record)
+        self.run_textual(record)
+        self.run_behavioural(record)
 
     def fuse(self, outputs: list[SignalOutput]) -> tuple[int, RiskBand]:
         """Combines the three signals with the saved fusion model.

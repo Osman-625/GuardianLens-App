@@ -9,7 +9,7 @@
 //    a new one and retrying the submission exactly once (backend restarts drop sessions);
 //  - every failure is turned into a GuardianLensApiError the UI can show.
 import { describe, expect, it } from "vitest";
-import { GuardianLensApiError, createClient, type TokenStore } from "../src/api";
+import { GuardianLensApiError, createClient, readApiError, type TokenStore } from "../src/api";
 
 /** One recorded request: the URL fetched and the options it was fetched with. */
 interface Call {
@@ -250,5 +250,26 @@ describe("claimSession", () => {
     expect(calls[0].init.body).toBe(JSON.stringify({ token: "token-9" }));
     expect(headerOf(calls[0], "Content-Type")).toBe("application/json");
     expect(calls[0].init.credentials).toBe("include");
+  });
+});
+
+// The one place a failed response is turned into an error body, used by this client and by the
+// website's own fetch helper.
+describe("readApiError", () => {
+  it("returns the API's error envelope as sent", async () => {
+    const envelope = { error: { code: "invalid_price", message: "Bad price.", field: "price" } };
+    expect(await readApiError(json(envelope, 422))).toEqual(envelope);
+  });
+
+  it.each([
+    ["an HTML error page", "<html>502 Bad Gateway</html>"],
+    ["plain text", "Request Entity Too Large"],
+    ["an empty body", ""],
+    ["JSON that is not the envelope", JSON.stringify({ detail: "nope" })],
+    ["JSON null", "null"],
+  ])("gives the 'bad_response' error for %s", async (_name, body) => {
+    expect(await readApiError(new Response(body, { status: 502 }))).toMatchObject({
+      error: { code: "bad_response", field: null },
+    });
   });
 });

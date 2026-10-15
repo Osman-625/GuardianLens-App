@@ -1,13 +1,13 @@
 """Tests for the `source` and `capture_meta` fields of POST /api/v1/assess, and the category limit.
 
 The extension tells the API where each submitted value came from (read from the page, edited by
-the buyer, or not found) so the research export can describe how data was captured. That record
+the buyer, or not found) so the research analysis can describe how data was captured. That record
 must stay safe to store, so these tests pin that:
   - `source` is one of two fixed values and defaults to "manual";
   - `capture_meta` accepts only a fixed set of keys and a fixed set of platform hosts, so a
     listing URL (or any other free text) can never be stored through it;
   - capture details are accepted only from the extension, and are size limited;
-  - the admin records and CSV export show the source;
+  - the source and the capture details are stored with the assessment;
   - category is free text but length limited.
 """
 
@@ -16,16 +16,15 @@ from __future__ import annotations
 import io
 import json
 from collections.abc import Iterator
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import Response
+from httpx2 import Response
 from PIL import Image
 
 from api.main import create_app
-from api.settings import get_settings
-
-ADMIN = {"X-Admin-Token": "test-admin-token"}
+from api.models.domain import AssessmentRecord
 
 # A complete, valid capture_meta payload that individual tests then break on purpose.
 VALID_META = {
@@ -47,15 +46,10 @@ VALID_META = {
 
 
 @pytest.fixture()
-def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    """A client whose app knows the development admin token, so admin routes are reachable."""
-    monkeypatch.setenv("GUARDIANLENS_DEV_ADMIN_TOKEN", "test-admin-token")
-    # Settings are cached after the first read; clear so this test's environment is used,
-    # and clear again afterwards so it does not leak into other tests.
-    get_settings.cache_clear()
+def client() -> Iterator[TestClient]:
+    """A client for a fresh app with its own in-memory database."""
     with TestClient(create_app()) as test_client:
         yield test_client
-    get_settings.cache_clear()
 
 
 def post_listing(client: TestClient, **extra: str) -> Response:
@@ -70,29 +64,37 @@ def post_listing(client: TestClient, **extra: str) -> Response:
         "category": "Laptops",
     }
     data.update(extra)
-    return client.post(
+    response: Response = client.post(
         "/api/v1/assess",
         data=data,
         files=[("images", ("listing.jpg", buffer.getvalue(), "image/jpeg"))],
     )
+    return response
 
 
-def admin_records(client: TestClient) -> list[dict[str, object]]:
-    """Returns the admin page's record list, newest first."""
-    return client.get("/api/v1/admin/records", headers=ADMIN).json()  # type: ignore[no-any-return]
+def stored(client: TestClient, response: Response) -> AssessmentRecord:
+    """Reads back, from the database, the assessment that a submission created."""
+    found = client.app.state.repository.get_assessment(  # type: ignore[attr-defined]
+        UUID(response.json()["assessment_id"])
+    )
+    assert found is not None
+    return found  # type: ignore[no-any-return]
 
 
 def test_source_defaults_to_manual(client: TestClient) -> None:
     """A submission without a `source` is recorded as manual."""
-    assert post_listing(client).status_code == 202
-    assert admin_records(client)[0]["source"] == "manual"
+    response = post_listing(client)
+    assert response.status_code == 202
+    assert stored(client, response).source == "manual"
 
 
 def test_extension_source_with_capture_meta_is_accepted(client: TestClient) -> None:
     """An extension submission with valid capture details is accepted and recorded as such."""
     response = post_listing(client, source="extension", capture_meta=json.dumps(VALID_META))
     assert response.status_code == 202, response.text
-    assert admin_records(client)[0]["source"] == "extension"
+    record = stored(client, response)
+    assert record.source == "extension"
+    assert record.capture_meta == VALID_META
 
 
 def test_extension_source_without_capture_meta_is_accepted(client: TestClient) -> None:
@@ -157,15 +159,6 @@ def test_category_is_free_text_but_length_limited(client: TestClient) -> None:
     assert too_long.status_code == 422
     assert too_long.json()["error"]["code"] == "category_too_long"
     assert too_long.json()["error"]["field"] == "category"
-
-
-def test_export_has_a_source_column(client: TestClient) -> None:
-    """The CSV export has a `source` column that shows where each record came from."""
-    post_listing(client, source="extension", capture_meta=json.dumps(VALID_META))
-    export = client.get("/api/v1/admin/export?dataset=outputs", headers=ADMIN)
-    lines = export.text.strip().splitlines()
-    assert "source" in lines[0].split(",")
-    assert lines[1].split(",")[lines[0].split(",").index("source")] == "extension"
 
 
 @pytest.mark.parametrize(

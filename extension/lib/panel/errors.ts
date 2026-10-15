@@ -46,7 +46,7 @@ export function mapApiError(error: unknown): MappedError {
       return {
         target: "failure",
         kind: "unreachable",
-        message: "Can't reach the GuardianLens service. Is the local server running?",
+        message: "The GuardianLens service is not reachable right now.",
       };
     }
     if (error.status === 429) {

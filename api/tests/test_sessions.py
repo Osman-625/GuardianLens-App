@@ -9,7 +9,7 @@ opaque token sent in the X-Session-Token header. These tests pin:
   - CORS allows the session header for the website;
   - a browser request from an origin the API does not serve is refused before it changes anything.
 
-One TestClient is used per test on purpose: the app creates its in-memory repository when it
+One TestClient is used per test on purpose: the app opens its own in-memory database when it
 starts up, so two clients would not share sessions. Which "browser" is calling is simulated by
 sending the header, or not.
 """
@@ -22,7 +22,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import Response
+from httpx2 import Response
 from PIL import Image
 
 from api.main import create_app
@@ -41,7 +41,7 @@ def make_image() -> bytes:
 def submit_with_token(client: TestClient, token: str | None) -> Response:
     """Submits a minimal valid listing, identifying the buyer by header when a token is given."""
     headers = {"X-Session-Token": token} if token is not None else {}
-    return client.post(
+    response: Response = client.post(
         "/api/v1/assess",
         data={
             "platform": "carousell",
@@ -53,6 +53,26 @@ def submit_with_token(client: TestClient, token: str | None) -> Response:
         files=[("images", ("listing.jpg", make_image(), "image/jpeg"))],
         headers=headers,
     )
+    return response
+
+
+def test_a_refused_first_submission_leaves_no_session_behind() -> None:
+    """The error answer carries no cookie, so a session made for it would never reach the buyer."""
+    with TestClient(create_app()) as client:
+        refused = client.post(
+            "/api/v1/assess",
+            data={"title": "ok", "description": "ok", "price": "abc", "category": "Laptops"},
+            files=[("images", ("listing.jpg", make_image(), "image/jpeg"))],
+        )
+        assert refused.status_code == 422
+        assert refused.json()["error"]["code"] == "invalid_price"
+        db = client.app.state.repository._db  # type: ignore[attr-defined]
+        assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 0
+
+        accepted = submit_with_token(client, None)  # the same buyer, corrected: now one session
+        assert accepted.status_code == 202
+        assert COOKIE_NAME in accepted.cookies
+        assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 1
 
 
 def test_create_session_returns_a_token() -> None:
@@ -177,15 +197,16 @@ EXTENSION = {"Origin": "chrome-extension://abcdefghijklmnopabcdefghijklmnop"}
 
 
 def test_claim_refuses_a_foreign_origin_even_without_a_content_type() -> None:
-    """A foreign-origin claim is refused (403) and sets no cookie, even without a Content-Type."""
+    """A foreign-origin claim is refused and sets no cookie, even without a Content-Type."""
     with TestClient(create_app()) as client:
         token = client.post("/api/v1/session").json()["session_token"]
         # `content=` sends the JSON bytes with no Content-Type header at all.
         response = client.post(
             "/api/v1/session/claim", content=json.dumps({"token": token}), headers=EVIL
         )
-        assert response.status_code == 403
-        assert response.json()["error"]["code"] == "origin_not_allowed"
+        # 422: FastAPI no longer reads a JSON body that has no JSON Content-Type, so it stops the
+        # request before the route's own origin check (403) would. Either way nothing is claimed.
+        assert response.status_code in (403, 422)
         assert "set-cookie" not in response.headers
         assert COOKIE_NAME not in client.cookies
 

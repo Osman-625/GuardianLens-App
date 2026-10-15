@@ -2,32 +2,111 @@
 
    Imported by the website (frontend/app/layout.tsx) and by the extension side panel
    (extension/entrypoints/sidepanel/main.tsx), so both surfaces look identical. It holds:
-     1. the design tokens (docs/spec/04_Design_Brief_UI_UX.md, section 3),
+     1. the typeface and the design tokens (docs/spec/04_Design_Brief_UI_UX.md, section 3),
      2. base element styles, form controls, buttons, and notices,
      3. the styles of the components in src/components.
    Page-specific layout stays in each app's own stylesheet.
 
-   Design direction: functionalist and calm (the brief's "lab report in plain words"). Colour is
-   information, never decoration: risk colours always travel with text and an icon. Borders carry
-   structure; there is a single soft shadow, used only for the sticky submit bar. */
+   Design direction: functionalist and calm (the brief's "lab report in plain words"), following
+   the GuardianLens UI design pack: navy and blue on a cool grey page, white cards with soft
+   borders, a ring dial for the score. Colour is information, never decoration: risk colours always
+   travel with text and an icon. Borders carry structure; shadows are faint and sit only on cards
+   and the sticky submit bar. */
 
-/* ---- 1. Design tokens ---------------------------------------------------------------- */
+/* ---- 1. Typeface and design tokens ---------------------------------------------------- */
+/* Public Sans, bundled (Chrome MV3 blocks remote fonts). Latin subset only: it covers English and
+   Malay; any other character falls back to the system face. It has true tabular figures for the
+   score. */
+@font-face {
+  font-family: "Public Sans";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/public-sans/files/public-sans-latin-wght-normal.woff2")
+    format("woff2");
+}
+/* Arial resized to Public Sans's width and line metrics (measured in Chromium), so text barely
+   moves when the webfont swaps in. */
+@font-face {
+  font-family: "Public Sans Fallback";
+  src: local("Arial");
+  size-adjust: 103%;
+  ascent-override: 92.2%;
+  descent-override: 22.3%;
+  line-gap-override: 0%;
+}
+
 :root {
   --color-ink: #1a2332; /* primary text */
   --color-ink-muted: #4a5568; /* secondary text, captions */
+  --color-ink-faint: #5f6b7c; /* tertiary text: still 4.5:1 on white */
   --color-surface: #ffffff; /* cards and sheets */
-  --color-surface-alt: #f4f6f8; /* page background */
-  --color-border: #d7dee6;
+  --color-surface-alt: #f5f7fa; /* page background */
+  --color-surface-tint: #eef1f6; /* chips, icon tiles, hover fills */
+  --color-border: #dce3ec;
+  --color-border-hover: #9eb5df; /* the border of a hovered card link */
+  --color-control-border: #8391a4; /* form controls: 3:1 against white (WCAG 1.4.11) */
   --color-primary: #1d4ed8; /* primary actions, links, focus ring */
   --color-primary-dark: #173da8;
+  --color-primary-soft: #eef3ff;
+  --color-primary-line: #d4e0fb;
   --color-primary-ink: #ffffff; /* text on primary */
+  --color-navy: #172744; /* logo tile and strong buttons */
+  --color-navy-dark: #0e1b33;
   --color-risk-low: #1e7a46;
+  --color-risk-low-soft: #e8f5ed;
+  --color-risk-low-line: #bfe0cb;
   --color-risk-moderate: #9a5b00;
+  --color-risk-moderate-soft: #fff3dd;
   --color-risk-high: #b42318;
+  --color-risk-high-soft: #fdeceb;
+  --color-risk-high-line: #f3c6c2;
   --color-risk-unknown: #4a5568;
-  --radius-card: 12px;
-  --radius-input: 8px;
+  /* The development-stub banner: amber, but not the Moderate band's amber, so it is never read
+     as a risk band. */
+  --color-caution-ink: #6d4600;
+  --color-caution-soft: #fff8e8;
+  --color-caution-line: #f0c36a;
+
+  /* 4px spacing scale. */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+
+  /* Type scale (brief 3.2). Fixed sizes for the app; only the landing hero is fluid. Headings step
+     by at least 1.25; the two small steps are the brief's caption and label sizes. */
+  --text-label: 0.8125rem; /* 13: chips, labels, eyebrows */
+  --text-sm: 0.875rem; /* 14: captions, helper text, retention notice */
+  --text-base: 1rem; /* 16: body */
+  --text-lg: 1.25rem; /* 20: card titles, section heads */
+  --text-xl: 1.75rem; /* 28: screen titles */
+  --text-display: 2.75rem; /* 44: the score */
+
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --radius-input: 10px;
+  --shadow-card: 0 1px 2px rgb(26 35 50 / 0.04), 0 6px 20px rgb(26 35 50 / 0.04);
   --shadow-sheet: 0 12px 32px rgb(26 35 50 / 0.14);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); /* strong ease-out: instant start, soft landing */
+}
+
+/* A risk band sets two variables; the chip, the dial, and the history score all read them. */
+.band-low {
+  --band: var(--color-risk-low);
+  --band-soft: var(--color-risk-low-soft);
+}
+.band-moderate {
+  --band: var(--color-risk-moderate);
+  --band-soft: var(--color-risk-moderate-soft);
+}
+.band-high {
+  --band: var(--color-risk-high);
+  --band-soft: var(--color-risk-high-soft);
 }
 
 /* ---- 2. Base, forms, buttons, notices ------------------------------------------------ */
@@ -42,14 +121,16 @@ body {
   color: var(--color-ink);
   background: var(--color-surface-alt);
   font-family:
-    Inter,
+    "Public Sans",
+    "Public Sans Fallback",
     system-ui,
     -apple-system,
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: 16px;
+  font-size: var(--text-base);
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 a {
   color: var(--color-primary);
@@ -57,6 +138,16 @@ a {
 }
 a:hover {
   text-decoration: underline;
+}
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
 }
 button,
 input,
@@ -77,42 +168,42 @@ select {
   outline-offset: 2px;
 }
 
-/* Wordmark: ring mark plus the product name, used in both headers. */
+/* Wordmark: navy eye tile plus the product name (the Wordmark component), in both headers. */
 .wordmark {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   color: var(--color-ink);
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 .wordmark:hover {
   text-decoration: none;
 }
-.lens-mark {
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--color-primary);
-  border-radius: 50%;
-  position: relative;
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--color-navy);
+  color: var(--color-primary-ink);
 }
-.lens-mark::after {
-  content: "";
-  position: absolute;
-  width: 8px;
-  height: 3px;
-  background: var(--color-primary);
-  right: -7px;
-  bottom: -3px;
-  transform: rotate(45deg);
-  border-radius: 4px;
+.logo-mark .icon {
+  width: 20px;
+  height: 20px;
+}
+.wordmark-lens {
+  color: var(--color-primary);
 }
 
 .eyebrow {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-sm);
   color: var(--color-primary);
-  font-size: 13px;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -123,51 +214,65 @@ select {
   flex: none;
 }
 
-/* Cards. `.explainer-card` is the website landing page's card and shares the same look. */
-.explainer-card,
+/* Cards. */
 .card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
-  padding: 20px;
+  box-shadow: var(--shadow-card);
+  padding: var(--space-xl);
 }
-.explainer-card h2,
 .card h2 {
-  margin: 0 0 8px;
-  font-size: 20px;
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-lg);
 }
-.explainer-card p,
 .card p {
   margin: 0;
   color: var(--color-ink-muted);
+}
+/* The eyebrow is a <p>, so the card's paragraph rule above would otherwise grey it out. */
+.card p.eyebrow {
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary);
 }
 
 /* Buttons: at least 48px tall so they are easy to hit on touch screens. */
 .button {
   min-height: 48px;
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 11px 18px;
+  border-radius: var(--radius-button);
+  padding: 11px 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-sm);
   cursor: pointer;
   font-weight: 650;
+  text-align: center;
   transition:
-    background 160ms ease-out,
-    border-color 160ms ease-out,
-    opacity 160ms ease-out;
+    background-color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 .button:hover {
   text-decoration: none;
+}
+/* Press feedback: the control dips slightly, so it feels like it heard the tap. */
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.button .icon {
+  width: 18px;
+  height: 18px;
 }
 .button-primary {
   color: var(--color-primary-ink);
   background: var(--color-primary);
 }
-.button-primary:hover {
-  background: var(--color-primary-dark);
+.button-dark {
+  color: var(--color-primary-ink);
+  background: var(--color-navy);
 }
 .button-secondary {
   color: var(--color-ink);
@@ -177,11 +282,34 @@ select {
 .button-text {
   color: var(--color-primary);
   background: transparent;
-  padding-inline: 8px;
+  padding-inline: var(--space-sm);
 }
+@media (hover: hover) and (pointer: fine) {
+  .button-primary:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+  }
+  .button-dark:hover:not(:disabled) {
+    background: var(--color-navy-dark);
+  }
+  .button-secondary:hover:not(:disabled) {
+    background: var(--color-surface-alt);
+    border-color: var(--color-control-border);
+  }
+  .button-text:hover:not(:disabled) {
+    background: var(--color-primary-soft);
+  }
+}
+/* Disabled keeps its label readable (brief 3.4): a flat grey fill with muted text at 6:1, not a
+   faded copy of the enabled colour. */
 .button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  border-color: var(--color-border);
+  background: var(--color-surface-tint);
+  color: var(--color-ink-muted);
+}
+.button-text:disabled {
+  border-color: transparent;
+  background: transparent;
 }
 .button-full {
   width: 100%;
@@ -190,15 +318,14 @@ select {
 /* Form fields: a label above the control, helper and error text below it. */
 .field {
   display: grid;
-  gap: 7px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
 }
 .field:last-child {
   margin-bottom: 0;
 }
-label,
-.field-label {
-  font-size: 14px;
+label {
+  font-size: var(--text-sm);
   font-weight: 650;
 }
 input,
@@ -206,11 +333,34 @@ textarea,
 select {
   width: 100%;
   min-height: 46px;
-  border: 1px solid #aeb8c5;
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-input);
   background: var(--color-surface);
   color: var(--color-ink);
-  padding: 10px 12px;
+  padding: 10px var(--space-md);
+  transition: border-color 160ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  input:hover:not(:disabled),
+  textarea:hover:not(:disabled),
+  select:hover:not(:disabled) {
+    border-color: var(--color-ink-faint);
+  }
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-primary);
+}
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background: var(--color-surface-tint);
+  color: var(--color-ink-muted);
+}
+input[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--color-risk-high);
 }
 textarea {
   min-height: 132px;
@@ -218,23 +368,24 @@ textarea {
 }
 .helper {
   color: var(--color-ink-muted);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .error-text {
   color: var(--color-risk-high);
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 .char-count {
   text-align: right;
-  color: var(--color-ink-muted);
-  font-size: 13px;
+  color: var(--color-ink-faint);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Collapsible optional group (seller information). */
 details.optional {
   border-top: 1px solid var(--color-border);
-  padding-top: 16px;
+  padding-top: var(--space-lg);
 }
 /* The summary is a tap target, so it is padded to 44px tall (24px line + 2 x 10px). */
 details.optional summary {
@@ -243,33 +394,47 @@ details.optional summary {
   padding: 10px 0;
 }
 
-/* Retention notice and the sticky submit bar it sits in (kept in one visual group). */
+/* Retention notice and the sticky submit bar it sits in (kept in one visual group). The notice is
+   a tint, not a second bordered box inside the bar. */
 .retention {
-  border-left: 3px solid var(--color-primary);
-  padding: 10px 12px;
-  background: #eef4ff;
+  margin: 0;
+  border-radius: var(--radius-input);
+  padding: 10px var(--space-md);
+  background: var(--color-primary-soft);
   color: var(--color-ink-muted);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .submit-bar {
   position: sticky;
   bottom: 0;
   z-index: 10;
-  margin-top: 20px;
-  padding: 14px;
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: rgb(255 255 255 / 0.97);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
   box-shadow: var(--shadow-sheet);
 }
 
 /* Notices and manual-check lists. */
 .notice {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: #f8fafc;
-  padding: 14px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  padding: var(--space-md) var(--space-lg);
   color: var(--color-ink-muted);
+}
+.notice strong {
+  display: block;
+  color: var(--color-ink);
+}
+.notice p {
+  margin: 6px 0 0;
+}
+/* Inside a card a notice is a grey tint, never a card within a card. */
+.card .notice {
+  border-color: transparent;
+  background: var(--color-surface-alt);
 }
 .check-list {
   margin: 0;
@@ -277,12 +442,18 @@ details.optional summary {
 }
 .check-list li {
   margin: 10px 0;
+  padding-left: 2px;
+}
+.check-list li::marker {
+  color: var(--color-ink-faint);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Feedback choices (helpful / unclear / potentially incorrect). */
 .feedback-options {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .option-row {
   display: flex;
@@ -290,13 +461,29 @@ details.optional summary {
   align-items: center;
   min-height: 48px;
   border: 1px solid var(--color-border);
-  border-radius: 9px;
-  padding: 10px 12px;
+  border-radius: var(--radius-input);
+  padding: 10px var(--space-md);
+  background: var(--color-surface);
   cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: 500;
+  transition:
+    border-color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out);
+}
+.option-row:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .option-row:hover {
+    border-color: var(--color-control-border);
+  }
 }
 .option-row input {
   width: 18px;
   min-height: 18px;
+  accent-color: var(--color-primary);
 }
 .success-text {
   color: var(--color-risk-low);
@@ -314,18 +501,19 @@ details.optional summary {
 
 /* DevBanner: shown while scores come from development stubs. */
 .dev-banner {
-  border: 1px solid #f0c36a;
-  background: #fff8e8;
-  color: #6d4600;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 20px;
+  border: 1px solid var(--color-caution-line);
+  background: var(--color-caution-soft);
+  color: var(--color-caution-ink);
+  border-radius: var(--radius-button);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 /* StageList: the five processing stages (done / active / pending). */
 .stage-list {
-  margin: 24px 0;
+  margin: var(--space-lg) 0;
   padding: 0;
   list-style: none;
   text-align: left;
@@ -333,18 +521,25 @@ details.optional summary {
 .stage-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 48px;
-  color: var(--color-ink-muted);
+  color: var(--color-ink-faint);
 }
 .stage-dot {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border: 2px solid var(--color-border);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  background: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color 200ms var(--ease-out),
+    background-color 200ms var(--ease-out),
+    color 200ms var(--ease-out);
 }
 .stage-dot .icon {
   width: 14px;
@@ -356,23 +551,71 @@ details.optional summary {
 }
 .stage-active .stage-dot {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 5px rgb(29 78 216 / 0.12);
+  color: var(--color-primary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+.stage-done {
+  color: var(--color-ink-muted);
 }
 .stage-done .stage-dot {
   border-color: var(--color-risk-low);
+  background: var(--color-risk-low-soft);
   color: var(--color-risk-low);
 }
 
-/* ScoreRegion + BandChip: the score, band, and disclaimer as one bounded region. */
+/* ScoreRegion + BandChip: the dial, the band chip directly beneath it, and the disclaimer as one
+   bounded region. In a narrow box (the side panel, a phone) the three stack; given room, the
+   disclaimer moves beside the dial and band. The website enlarges the dial with --dial. */
 .score-region {
+  --dial: 104px;
+  container-type: inline-size;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  padding: 28px 20px;
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
+}
+/* A container cannot restyle itself from its own query, so the grid sits one level in. */
+.score-region-inner {
+  display: grid;
+  gap: var(--space-md);
+}
+.score-main {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-md);
+}
+.score-dial {
+  position: relative;
+  width: var(--dial, 104px);
+  aspect-ratio: 1;
+}
+.score-dial svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.dial-track,
+.dial-arc {
+  fill: none;
+  stroke-width: 9;
+}
+.dial-track {
+  stroke: var(--color-surface-tint);
+}
+.dial-arc {
+  stroke: var(--band);
+  stroke-linecap: round;
+}
+.score-readout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
   text-align: center;
 }
 .score-number {
-  font-size: 52px;
+  font-size: calc(var(--dial, 104px) * 0.36);
   line-height: 1;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
@@ -380,59 +623,62 @@ details.optional summary {
 }
 .score-total {
   color: var(--color-ink-muted);
-  font-size: 15px;
+  font-size: max(12px, calc(var(--dial, 104px) * 0.115));
 }
 .band-unit {
-  margin-top: 14px;
   display: grid;
-  justify-items: center;
-  gap: 7px;
+  justify-items: start;
+  gap: 6px;
 }
 .band-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border-radius: 999px;
-  padding: 7px 12px;
-  font-size: 13px;
-  font-weight: 750;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--band-soft);
+  color: var(--band);
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 .band-chip .icon {
   width: 16px;
   height: 16px;
 }
 .band-meaning {
-  color: var(--color-ink-muted);
-  font-size: 14px;
-}
-.band-low .band-chip {
-  color: var(--color-risk-low);
-  background: #e8f5ed;
-}
-.band-moderate .band-chip {
-  color: var(--color-risk-moderate);
-  background: #fff3dd;
-}
-.band-high .band-chip {
-  color: var(--color-risk-high);
-  background: #fdeceb;
+  color: var(--color-ink);
+  font-size: var(--text-base);
+  font-weight: 650;
+  line-height: 1.35;
 }
 .disclaimer {
   border-top: 1px solid var(--color-border);
-  margin-top: 20px;
-  padding-top: 16px;
+  margin: 0;
+  padding-top: var(--space-md);
   color: var(--color-ink-muted);
-  font-size: 14px;
+  font-size: var(--text-sm);
   text-align: left;
+}
+@container (min-width: 520px) {
+  .score-region-inner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--space-xl);
+  }
+  .score-region-inner > .disclaimer {
+    padding: 0 0 0 var(--space-xl);
+    border-top: 0;
+    border-left: 1px solid var(--color-border);
+  }
 }
 
 /* SignalCardView: one card per signal. All three share one template. */
 .signal-grid {
   display: grid;
-  gap: 12px;
-  margin: 20px 0;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
 }
 .signal-card {
   display: block;
@@ -441,52 +687,82 @@ details.optional summary {
   border-radius: var(--radius-card);
   background: var(--color-surface);
   color: var(--color-ink);
-  padding: 18px;
-  transition: border-color 160ms ease-out;
+  padding: var(--space-lg);
+  transition:
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+div.signal-card {
+  cursor: default;
 }
 .signal-card:hover {
-  border-color: #9eb5df;
   text-decoration: none;
+}
+a.signal-card:active {
+  transform: scale(0.985);
+}
+@media (hover: hover) and (pointer: fine) {
+  a.signal-card:hover {
+    border-color: var(--color-border-hover);
+    box-shadow: var(--shadow-card);
+  }
+  a.signal-card:hover .chevron {
+    color: var(--color-primary);
+    transform: translateX(2px);
+  }
 }
 .signal-heading {
   display: grid;
-  grid-template-columns: 36px 1fr auto;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
 }
 .signal-heading h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--text-base);
+  font-weight: 650;
 }
 .signal-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  background: #eef4ff;
+  background: var(--color-primary-soft);
   color: var(--color-primary);
 }
 .signal-icon .icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
-/* The status word, with a question icon in front of it when the signal is unknown. */
+/* The status word as a small pill, with a question icon in front of it when the signal is unknown. */
 .signal-status {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--color-surface-tint);
   color: var(--color-ink-muted);
-  font-size: 13px;
+  font-size: 0.75rem;
+  font-weight: 650;
   text-transform: capitalize;
 }
 .signal-status .icon {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 .signal-card p {
-  margin: 12px 0 0;
+  margin: var(--space-md) 0 0;
   color: var(--color-ink-muted);
+}
+/* What the signal can and cannot show, small and under the finding. */
+.signal-card .signal-scope {
+  margin-top: var(--space-sm);
+  color: var(--color-ink-faint);
+  font-size: var(--text-label);
 }
 /* A dashed border marks an unavailable ("unknown") signal. */
 .signal-unavailable {
@@ -495,7 +771,10 @@ details.optional summary {
 .chevron {
   display: grid;
   place-items: center;
-  color: var(--color-ink-muted);
+  color: var(--color-ink-faint);
+  transition:
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 .chevron .icon {
   width: 22px;

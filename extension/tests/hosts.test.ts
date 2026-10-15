@@ -5,7 +5,7 @@
 // unlisted host is skipped cleanly instead of failing with a confusing network error.
 // Matching must be EXACT on the host: a look-alike such as "mudah.my.evil.com" is never allowed.
 import { describe, expect, it } from "vitest";
-import { IMAGE_HOST_PATTERNS, isFetchableImageUrl } from "../lib/hosts";
+import { IMAGE_HOST_PATTERNS, isFetchableImageUrl, PAGE_HOST_PATTERNS } from "../lib/hosts";
 
 describe("IMAGE_HOST_PATTERNS", () => {
   it("uses the manifest match-pattern shape https://<host>/*", () => {
@@ -64,5 +64,19 @@ describe("isFetchableImageUrl", () => {
     ["an empty string", ""],
   ])("rejects %s", (_label, url) => {
     expect(isFetchableImageUrl(url)).toBe(false);
+  });
+});
+
+describe("PAGE_HOST_PATTERNS", () => {
+  // These are optional permissions asked for from a click, so they must be exactly the four
+  // marketplace hosts and never overlap the standing photo-host list.
+  it("lists the four marketplace hosts and none of the photo hosts", () => {
+    expect([...PAGE_HOST_PATTERNS].sort()).toEqual([
+      "https://carousell.com.my/*",
+      "https://mudah.my/*",
+      "https://www.carousell.com.my/*",
+      "https://www.mudah.my/*",
+    ]);
+    for (const pattern of PAGE_HOST_PATTERNS) expect(IMAGE_HOST_PATTERNS).not.toContain(pattern);
   });
 });

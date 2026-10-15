@@ -38,6 +38,8 @@ function renderReview(
     onEdit: vi.fn(),
     onTogglePhoto: vi.fn(),
     onSubmit: vi.fn(),
+    onOpenSeller: vi.fn(),
+    onCapture: vi.fn(),
     onOpenSite: vi.fn(),
     ...overrides,
   };
@@ -52,19 +54,21 @@ function fieldOf(label: string): HTMLElement {
 
 describe("IdleView", () => {
   it("has a level-one heading, like every other view (screen readers and axe expect one)", () => {
-    render(<IdleView reason="no_capture" onOpenSite={vi.fn()} />);
+    render(<IdleView reason="no_capture" onOpenSite={vi.fn()} onCapture={vi.fn()} />);
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
   it("tells the buyer what to do first", () => {
-    render(<IdleView reason="no_capture" onOpenSite={vi.fn()} />);
+    render(<IdleView reason="no_capture" onOpenSite={vi.fn()} onCapture={vi.fn()} />);
     expect(
       screen.getByText("Open a Mudah.my or Carousell listing, then click the GuardianLens icon."),
     ).toBeInTheDocument();
   });
 
   it("explains a blocked page in plain words", () => {
-    render(<IdleView reason="blocked" pageState="captcha" onOpenSite={vi.fn()} />);
+    render(
+      <IdleView reason="blocked" pageState="captcha" onOpenSite={vi.fn()} onCapture={vi.fn()} />,
+    );
     expect(
       screen.getByText(
         "The site is asking for a security check. Complete it, then click the icon again.",
@@ -73,13 +77,13 @@ describe("IdleView", () => {
   });
 
   it("explains how to add seller details when there is no listing yet", () => {
-    render(<IdleView reason="no_draft_for_seller" onOpenSite={vi.fn()} />);
+    render(<IdleView reason="no_draft_for_seller" onOpenSite={vi.fn()} onCapture={vi.fn()} />);
     expect(screen.getByText(/Open the listing first/)).toBeInTheDocument();
   });
 
   it("offers the website form and the session history", async () => {
     const onOpenSite = vi.fn();
-    render(<IdleView reason="no_capture" onOpenSite={onOpenSite} />);
+    render(<IdleView reason="no_capture" onOpenSite={onOpenSite} onCapture={vi.fn()} />);
     await userEvent.click(screen.getByRole("button", { name: "Use the website form" }));
     await userEvent.click(screen.getByRole("button", { name: "This session" }));
     expect(onOpenSite).toHaveBeenNthCalledWith(1, "/assess");
@@ -92,6 +96,30 @@ describe("ReviewView", () => {
     renderReview();
     expect(screen.getByText("Captured from this page when you clicked.")).toBeInTheDocument();
     expect(screen.getByText("Carousell")).toBeInTheDocument();
+  });
+
+  it("says when the category was matched to a trained one, and from what", () => {
+    renderReview(
+      {},
+      draftFromListing(
+        sampleListing({ category: { status: "captured", value: "Mobile Phones & Gadgets" } }),
+      ),
+    );
+    expect(
+      screen.getByText(
+        'Matched from "Mobile Phones & Gadgets" on the page. Change it if it is wrong.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no match note when the category is the page's own wording", () => {
+    renderReview(
+      {},
+      draftFromListing(
+        sampleListing({ category: { status: "captured", value: "Aquarium supplies" } }),
+      ),
+    );
+    expect(screen.queryByText(/Matched from/)).not.toBeInTheDocument();
   });
 
   it("labels each field in words: captured, edited, not found", () => {
@@ -247,11 +275,58 @@ describe("ReviewView", () => {
 
   it("shows a notice above the form", () => {
     renderReview({
-      notice: "Seller details added. Check the listing again to include them.",
+      notice: "Seller details added. Press Check listing to include them.",
     });
     expect(
-      screen.getByText("Seller details added. Check the listing again to include them."),
+      screen.getByText("Seller details added. Press Check listing to include them."),
     ).toBeInTheDocument();
+  });
+
+  // The second capture: the listing page linked to the seller's profile, so the panel offers it.
+  describe("the seller page step", () => {
+    const SELLER_PAGE = "https://www.carousell.com.my/u/someone/";
+
+    it("says Mudah does not show a rating or reviews, instead of 'not found'", () => {
+      renderReview(
+        {},
+        draftFromListing(sampleListing({ platform: "mudah", platformHost: "www.mudah.my" })),
+      );
+      expect(screen.getAllByText(/Mudah does not show this/)).toHaveLength(2);
+      expect(screen.getAllByText(/^Not found\. Treated as unknown/)).toHaveLength(2);
+    });
+
+    it("has a 'Capture this page' button for the seller's page", async () => {
+      const props = renderReview();
+      await userEvent.click(screen.getByRole("button", { name: "Capture this page" }));
+      expect(props.onCapture).toHaveBeenCalledTimes(1);
+    });
+
+    it("offers 'Open seller page' when the listing page linked to the seller", async () => {
+      const props = renderReview({}, draftFromListing(sampleListing({ sellerUrl: SELLER_PAGE })));
+      await userEvent.click(screen.getByRole("button", { name: "Open seller page" }));
+      expect(props.onOpenSeller).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/Click the GuardianLens icon there/)).toBeInTheDocument();
+      // The instruction is given once: the button's note, not the notice above it.
+      expect(screen.queryByText(/Open the seller's page and click/)).not.toBeInTheDocument();
+    });
+
+    it("offers no button when no seller link was found (the instructions still show)", () => {
+      renderReview();
+      expect(screen.queryByRole("button", { name: "Open seller page" })).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/Open the seller's page and click the GuardianLens icon/),
+      ).toBeInTheDocument();
+    });
+
+    it("keeps offering the button after some seller details were captured", () => {
+      // Carousell's listing count only comes from the profile page, so the step is still useful.
+      const draft = applySeller(
+        draftFromListing(sampleListing({ sellerUrl: SELLER_PAGE })),
+        sampleSeller({ activeListingCount: { status: "not_found", value: null } }),
+      );
+      renderReview({}, draft);
+      expect(screen.getByRole("button", { name: "Open seller page" })).toBeInTheDocument();
+    });
   });
 
   it("requires at least one photo", () => {
@@ -423,7 +498,7 @@ describe("FailureView", () => {
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Can't reach the GuardianLens service");
-    expect(screen.getByText(/Start the GuardianLens API on this computer/)).toBeInTheDocument();
+    expect(screen.getByText(/Ask the researcher/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });

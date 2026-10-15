@@ -34,7 +34,7 @@ Build and load the extension (see the README), then:
 
 - [ ] Landing page at 375, 768, and 1440 px looks right (the automated audit found no overflow, but not whether it looks right)
 - [ ] An unseen category such as "Aquarium supplies" shows the overall-average note on the manual form and submits
-- [ ] After one manual and one extension check, `/admin` shows `manual` and `extension` in the Source column
+- [ ] After one manual and one extension check, `sqlite3 data/guardianlens.sqlite3 "select source, count(*) from assessments group by source"` shows `manual` and `extension`
 
 ## 4. Trained models (why a running API shows the "Development stub" banner)
 

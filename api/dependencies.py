@@ -1,7 +1,7 @@
 # Shared request helpers for the routers: access to the app's repository, rate limiter, and
 # settings; reading the anonymous session from the request (the X-Session-Token header sent by the
 # browser extension, or the cookie set for the website); the ownership check that keeps one
-# session's results invisible to another; and the development admin gate.
+# session's results invisible to another.
 from __future__ import annotations
 
 from typing import cast
@@ -11,19 +11,29 @@ from fastapi import Request
 
 from api.errors import AppError
 from api.models.domain import AssessmentRecord
-from api.repositories.base import AssessmentRepository
-from api.services.rate_limit import SessionRateLimiter
+from api.repositories.assessments import AssessmentRepository
+from api.services.rate_limit import RateLimiter
 from api.settings import Settings
 
 
 def get_repository(request: Request) -> AssessmentRepository:
-    """Returns the repository (in memory or Supabase) that the app built at start-up."""
+    """Returns the repository that the app opened at start-up."""
     return cast(AssessmentRepository, request.app.state.repository)
 
 
-def get_rate_limiter(request: Request) -> SessionRateLimiter:
+def get_rate_limiter(request: Request) -> RateLimiter:
     """Returns the per-session rate limiter that the app built at start-up."""
-    return cast(SessionRateLimiter, request.app.state.rate_limiter)
+    return cast(RateLimiter, request.app.state.rate_limiter)
+
+
+def check_ip_rate_limit(request: Request) -> None:
+    """Counts this request against its network address, or raises a 429 when it is over.
+
+    Call it before a session is created: a client that sends no cookie gets a new session every
+    time, so only its address stays the same.
+    """
+    address = request.client.host if request.client else "unknown"
+    cast(RateLimiter, request.app.state.ip_rate_limiter).check(address)
 
 
 def get_app_settings(request: Request) -> Settings:
@@ -107,15 +117,3 @@ def require_owned_assessment(request: Request, assessment_id: UUID) -> Assessmen
     if assessment is None or assessment.session_id != session_id:
         raise AppError(404, "not_found", "The requested assessment was not found.")
     return assessment
-
-
-def require_dev_admin(request: Request) -> None:
-    """Allows the request only when its X-Admin-Token matches the configured development token.
-
-    With no token configured, every admin request is refused.
-    """
-    settings = get_app_settings(request)
-    expected = settings.guardianlens_dev_admin_token
-    provided = request.headers.get("x-admin-token")
-    if not expected or provided != expected:
-        raise AppError(403, "admin_forbidden", "Administrator access is required.")

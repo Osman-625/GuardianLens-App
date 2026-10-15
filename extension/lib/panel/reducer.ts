@@ -10,6 +10,7 @@
 //     draft is valid, so pressing the button twice cannot start two checks.
 // Side effects (storage, network, timers) live in controller.ts; this file has none.
 import type { AssessmentResult, PipelineStage } from "@guardianlens/shared";
+import { samePage } from "../capture/classify";
 import type { CaptureJob } from "../capture/runner";
 import type { PageState } from "../capture/types";
 import {
@@ -102,7 +103,24 @@ export const initialPanelState: PanelState = {
 // The one-line notices shown above the Review form: a listing read only in part, seller details
 // merged into the draft, and a seller page that could not be read.
 const INCOMPLETE_NOTICE = "Some details could not be read from this page. Check each field.";
-const SELLER_ADDED_NOTICE = "Seller details added. Check the listing again to include them.";
+const SELLER_ADDED_NOTICE = "Seller details added. Press Check listing to include them.";
+/** The notice when the listing did not link its seller, so nothing confirms this page is theirs. */
+const sellerAddedFromNotice = (page: string) =>
+  `Seller details added from ${page}. Check that this is the seller of this listing, then press Check listing.`;
+
+/** "www.mudah.my/u/seller-1": the page a capture came from, without any query string. */
+function pageLabel(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`.replace(/\/+$/, "");
+  } catch {
+    return url;
+  }
+}
+const SELLER_NOTHING_NOTICE =
+  "No seller details could be read from that page. Type what you can see below.";
+const SELLER_OTHER_NOTICE =
+  "That is not this listing's seller, so nothing was added. Use Open seller page, then click the icon there.";
 const SELLER_UNREADABLE_NOTICE =
   "The seller page could not be read, so no seller details were added.";
 
@@ -171,21 +189,32 @@ function applyCaptureJob(state: PanelState, job: CaptureJob): PanelState {
   }
 
   // A seller page: its values are merged into the draft of the listing the buyer already captured.
+  // With no draft yet, the job is NOT marked as applied: in a new tab the saved draft may still be
+  // loading, and the controller reads the stored job again once it has, so the values are kept.
   if (state.draft === null)
-    return { ...base, view: { name: "idle", reason: "no_draft_for_seller" } };
+    return { ...state, view: { name: "idle", reason: "no_draft_for_seller" } };
   if (isBlocked(result.pageState))
     return {
       ...base,
       view: { name: "review" },
       notice: SELLER_UNREADABLE_NOTICE,
     };
+  // When the listing linked to its seller, only that page counts: another seller's details (or the
+  // buyer's own profile) must not end up in this check.
+  if (state.draft.sellerUrl && !samePage(state.draft.sellerUrl, result.url))
+    return { ...base, view: { name: "review" }, notice: SELLER_OTHER_NOTICE };
   return {
     ...base,
     view: { name: "review" },
     draft: applySeller(state.draft, result.seller),
     fieldErrors: {},
     submitting: false,
-    notice: SELLER_ADDED_NOTICE,
+    // A page that showed nothing must not claim that details were added.
+    notice: Object.values(result.seller).some((field) => field.value !== null)
+      ? state.draft.sellerUrl
+        ? SELLER_ADDED_NOTICE
+        : sellerAddedFromNotice(pageLabel(result.url))
+      : SELLER_NOTHING_NOTICE,
   };
 }
 

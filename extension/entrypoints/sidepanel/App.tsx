@@ -2,6 +2,7 @@
 // transport, real photo downloads, session storage, and the tab opener) and renders the panel.
 // Tests render PanelApp with fakes instead, so nothing here needs a browser to be verified.
 import { createClient } from "@guardianlens/shared";
+import { captureActiveTab } from "@/lib/capture/runner";
 import { API_BASE_URL, SITE_BASE_URL } from "@/lib/config";
 import type { ControllerDeps } from "@/lib/panel/controller";
 import { browserPhotoDeps } from "@/lib/panel/photos";
@@ -19,6 +20,7 @@ const deps: ControllerDeps = {
   photoDeps: browserPhotoDeps,
   storage: panelStorage,
   openUrl: (url) => void browser.tabs.create({ url }),
+  captureActiveTab: async () => void (await captureActiveTab()),
   siteBaseUrl: SITE_BASE_URL,
 };
 

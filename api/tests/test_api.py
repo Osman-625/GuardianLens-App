@@ -9,7 +9,7 @@ from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import Response
+from httpx2 import Response
 from PIL import Image
 
 from api.main import create_app
@@ -37,11 +37,12 @@ def submit(client: TestClient, **overrides: str) -> Response:
         "active_listing_count": "4",
     }
     data.update(overrides)
-    return client.post(
+    response: Response = client.post(
         "/api/v1/assess",
         data=data,
         files=[("images", ("listing.jpg", make_image(), "image/jpeg"))],
     )
+    return response
 
 
 def test_health_and_stub_flag() -> None:
@@ -50,6 +51,16 @@ def test_health_and_stub_flag() -> None:
         response = client.get("/health")
         assert response.status_code == 200
         assert response.json()["stub_mode"] is True
+
+
+def test_health_does_not_expose_folder_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The public health page never shows where the model run lives on the server's disk."""
+    monkeypatch.setenv("GUARDIANLENS_MODEL_RUN_DIR", r"C:\secret\models\run_42")
+    with TestClient(create_app()) as client:
+        body = client.get("/health")
+    assert body.status_code == 200
+    assert "secret" not in body.text
+    assert not {"configured_model_run", "visual_unavailable_reason"} & set(body.json())
 
 
 def test_assessment_contract_end_to_end() -> None:
@@ -94,6 +105,10 @@ def test_missing_seller_fields_are_unknown() -> None:
         )
         assert behavioural["available"] is False
         assert "unknown, not as suspicious" in behavioural["summary"]
+        # One notice says the score left a signal out; it does not repeat the card's sentence.
+        assert payload["missing_data_notices"] == [
+            "This score uses 2 of 3 signals. The rest are treated as unknown, not as suspicious."
+        ]
 
 
 def test_unsupported_language_preserves_field_error_envelope() -> None:
@@ -105,8 +120,8 @@ def test_unsupported_language_preserves_field_error_envelope() -> None:
             "error": {
                 "code": "unsupported_language",
                 "message": (
-                    "Chinese-dominant listings are outside this prototype's "
-                    "supported language scope."
+                    "Listings written mostly in Chinese or another non-Latin script are "
+                    "outside this prototype's supported language scope."
                 ),
                 "field": "description",
             }
@@ -178,7 +193,7 @@ def test_default_photo_limit_is_ten() -> None:
 
 def submit_photos(client: TestClient, count: int) -> Response:
     """Submits a valid listing with `count` photos."""
-    return client.post(
+    response: Response = client.post(
         "/api/v1/assess",
         data={
             "platform": "carousell",
@@ -188,10 +203,10 @@ def submit_photos(client: TestClient, count: int) -> Response:
             "category": "Laptops",
         },
         files=[
-            ("images", (f"photo-{index}.jpg", make_image(), "image/jpeg"))
-            for index in range(count)
+            ("images", (f"photo-{index}.jpg", make_image(), "image/jpeg")) for index in range(count)
         ],
     )
+    return response
 
 
 @pytest.fixture()

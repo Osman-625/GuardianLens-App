@@ -47,6 +47,7 @@ export function captureCurrentPage(doc: Document, url: string, now: Date): Captu
     return {
       kind: "seller",
       platform: seller.platform,
+      url,
       seller: toCapturedSeller(parseSellerPage(doc, seller.platform, url, now)),
       pageState: blocked ?? "ready",
     };

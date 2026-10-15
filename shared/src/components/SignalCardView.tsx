@@ -34,6 +34,11 @@ export interface SignalCardViewProps {
  */
 export function SignalCardView({ card, href, LinkComponent, onOpen }: SignalCardViewProps) {
   const className = `signal-card ${card.available ? "" : "signal-unavailable"}`.trim();
+  // The strongest reason is the card's finding. Without one the API's own status word and summary
+  // stay (they say how the signal was checked, which is all there is to say).
+  const top = card.available ? card.reasons[0] : undefined;
+  // Named as the main factor, not the signal's verdict: the top reason is one of up to three.
+  const status = top ? `main factor: ${top.direction} risk` : card.status_word;
   const body = (
     <>
       <div className="signal-heading">
@@ -44,14 +49,15 @@ export function SignalCardView({ card, href, LinkComponent, onOpen }: SignalCard
           <h2>{SIGNAL_NAMES[card.signal]}</h2>
           <span className="signal-status">
             {!card.available && <Icon name="question-circle" />}
-            {card.status_word}
+            {status}
           </span>
         </div>
         <span className="chevron">
           <Icon name="chevron-right" />
         </span>
       </div>
-      <p>{card.summary}</p>
+      <p>{top ? top.display_text : card.summary}</p>
+      {card.available && card.scope_note && <p className="signal-scope">{card.scope_note}</p>}
     </>
   );
 

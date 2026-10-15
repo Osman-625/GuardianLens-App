@@ -49,6 +49,27 @@ const MONTHS: Record<string, number> = {
 const AGE_ANCHOR =
   /(joined(?:\s+since)?|member\s+since|been\s+on\s+(?:carousell|mudah)(?:\s+for)?|account\s+(?:age|created))/i;
 
+// The wording of Carousell's seller card, seen on real saved pages (2026-09): "Profile details
+// 4.7 66 reviews 5 years on Carousell" and "N/A No review yet 2 months on Carousell". The duration
+// comes BEFORE "on Carousell", so the anchor words above never see it.
+const DURATION_ON_SITE =
+  /(?:(\d+)\s*(?:years?|yrs?))?\s*(?:(\d+)\s*(?:months?|mths?))?\s+on\s+(?:carousell|mudah)\b/i;
+
+// Carousell's profile header (seen 2026-10): "5.0 52 reviews 10m 22d Joined". The abbreviated
+// duration (y, m, d) comes BEFORE the word "Joined", and the text after it is the seller's own bio.
+const DURATION_BEFORE_JOINED =
+  /(?<![\d.,])(?=\d)(?:(\d+)\s*y\s*)?(?:(\d+)\s*m\s*)?(?:(\d+)\s*d\s*)?joined\b/i;
+
+/** 1 year = 365 days and 1 month = 30 days (the training convention); null when none is given. */
+function durationToDays(
+  years: string | undefined,
+  months: string | undefined,
+  days?: string,
+): number | null {
+  if (years === undefined && months === undefined && days === undefined) return null;
+  return Number(years ?? 0) * 365 + Number(months ?? 0) * 30 + Number(days ?? 0);
+}
+
 /** Builds a UTC date, or null when the month name is unknown or the day does not exist (31 Feb). */
 function utcDate(year: string, monthName: string, day: string): Date | null {
   const month = MONTHS[monthName.slice(0, 3).toLowerCase()];
@@ -85,9 +106,24 @@ function statedJoinDate(text: string): Date | null {
  * @param text Visible text of the page.
  * @param now "Today", used when the page states a join date instead of a duration.
  * @returns Days, or null when the page states neither a duration nor a full join date after an
- *          account-age phrase (a bare year such as "Member since 2019" is not enough).
+ *          account-age phrase (a bare year such as "Member since 2019" is not enough), nor a
+ *          duration before "on Carousell".
  */
 export function parseAccountAgeDays(text: string, now: Date): number | null {
+  // The card's duration is the fallback, so a page that also has a "Joined since: Nov 2022" line
+  // (month and year: deliberately unread) still gets its "5 years on Carousell".
+  const onSite = DURATION_ON_SITE.exec(text);
+  const beforeJoined = DURATION_BEFORE_JOINED.exec(text);
+  // Tried first: the text after "Joined" on that header is the bio, which may mention "5 years".
+  return (
+    durationToDays(beforeJoined?.[1], beforeJoined?.[2], beforeJoined?.[3]) ??
+    ageAfterAnchor(text, now) ??
+    durationToDays(onSite?.[1], onSite?.[2])
+  );
+}
+
+/** The age stated right after an account-age phrase ("Joined ...", "Member since ..."), or null. */
+function ageAfterAnchor(text: string, now: Date): number | null {
   const anchor = AGE_ANCHOR.exec(text);
   if (!anchor) return null;
   const start = anchor.index + anchor[0].length;
@@ -104,8 +140,7 @@ export function parseAccountAgeDays(text: string, now: Date): number | null {
   // A stated duration: "3 years 2 months", "11 years", "8 months".
   const years = /(\d+)\s*(?:years?|yrs?)\b/i.exec(nearby)?.[1];
   const months = /(\d+)\s*(?:months?|mths?)\b/i.exec(nearby)?.[1];
-  if (years === undefined && months === undefined) return null;
-  return Number(years ?? 0) * 365 + Number(months ?? 0) * 30;
+  return durationToDays(years, months);
 }
 
 /** A rating from 0 to 5, or null when the text is missing or the number is outside that range. */
@@ -131,8 +166,10 @@ export function parseReviewStats(text: string): {
   rating: number | null;
   reviewCount: number | null;
 } {
-  // "4.8 (17 reviews)"
-  const combined = /(\d(?:\.\d{1,2})?)\s*\(\s*(\d[\d,]*)\s*reviews?\s*\)/i.exec(text);
+  // "4.8 (17 reviews)", or Carousell's seller card: "4.7 66 reviews", "5.0 1 review"
+  const combined =
+    /(\d(?:\.\d{1,2})?)\s*\(\s*(\d[\d,]*)\s*reviews?\s*\)/i.exec(text) ??
+    /(?<![\d.,])(\d(?:\.\d{1,2})?)\s+(\d[\d,]*)\s+reviews?\b/i.exec(text);
   if (combined)
     return {
       rating: boundedRating(combined[1]),

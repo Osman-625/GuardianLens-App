@@ -13,7 +13,7 @@
 #   trained  numpy, pandas, scikit-learn, xgboost, joblib, scipy, pyyaml   (the saved T, B and fusion models)
 #   visual   torch and transformers                                        (CLIP and SSCD for the visual signal)
 #   dev      pytest, mypy, ruff                                            (tests and checks)
-# Everything the API itself needs (FastAPI, uvicorn, pydantic, pillow, httpx) comes from the
+# Everything the API itself needs (FastAPI, uvicorn, pydantic, pillow) comes from the
 # project's own dependencies. Versions are pinned in pyproject.toml, so this file does not repeat them.
 #
 # torch is installed from PyTorch's CPU index: serving runs on the CPU, and the CPU build is far

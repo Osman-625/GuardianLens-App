@@ -6,4 +6,5 @@ export * from "./categories";
 export * from "./api";
 export * from "./claim";
 export * from "./copy";
+export * from "./limits";
 export * from "./components";

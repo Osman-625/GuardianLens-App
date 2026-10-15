@@ -7,10 +7,27 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, GuardianLensApiError } from "@/lib/api";
-import { CategoryField } from "@guardianlens/shared";
+import { CategoryField, LIMITS, RETENTION_NOTICE } from "@guardianlens/shared";
 
-// The most photos one check can include. It matches the API setting GUARDIANLENS_MAX_IMAGES.
-const MAX_PHOTOS = 10;
+// The most photos one check can include (the API setting GUARDIANLENS_MAX_IMAGES).
+const MAX_PHOTOS = LIMITS.photos;
+
+// The seller fields have no message of their own beside them, so their errors are shown next to
+// the submit button, led by the field's name.
+const SELLER_FIELD_LABELS: Record<string, string> = {
+  account_age_days: "Account age in days",
+  rating: "Rating",
+  review_count: "Review count",
+  active_listing_count: "Active listing count",
+};
+
+/** True when the form already shows a server error for this field right beside the field. */
+function shownBesideField(field: string | null): boolean {
+  if (field === null) return false;
+  return (
+    field.startsWith("images") || ["title", "description", "price", "category"].includes(field)
+  );
+}
 
 /** The form's values, all held as text exactly as the buyer typed them. */
 interface Draft {
@@ -80,6 +97,10 @@ export default function AssessPage() {
       ),
     [draft, files.length],
   );
+  // Text over an API limit is shown in red and blocks the button, instead of failing after the upload.
+  const titleOver = draft.title.trim().length > LIMITS.title;
+  const descriptionOver = draft.description.trim().length > LIMITS.description;
+  const canSubmit = mandatoryValid && !titleOver && !descriptionOver;
 
   // Stores one edited field and clears the server error that was shown for that field.
   function update(field: keyof Draft, value: string) {
@@ -106,7 +127,7 @@ export default function AssessPage() {
   // API's message beside the field it names (or a general message when the API cannot be reached).
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!mandatoryValid || submitting) return;
+    if (!canSubmit || submitting) return;
     setSubmitting(true);
     setError(null);
     const body = new FormData();
@@ -116,7 +137,7 @@ export default function AssessPage() {
     body.append("description", draft.description);
     body.append("price", draft.price);
     body.append("category", draft.category.trim());
-    // Tells the API (and the research export) that this listing was typed in, not captured.
+    // Tells the API that this listing was typed in, not captured.
     body.append("source", "manual");
     body.append("account_age_days", draft.accountAgeDays);
     body.append("rating", draft.rating);
@@ -134,7 +155,8 @@ export default function AssessPage() {
         setError({ message: caught.message, field: caught.field });
       } else {
         setError({
-          message: "The API could not be reached. Confirm that FastAPI is running on port 8000.",
+          message:
+            "The GuardianLens service could not be reached. Try again, or ask the researcher.",
           field: null,
         });
       }
@@ -215,24 +237,32 @@ export default function AssessPage() {
             <label htmlFor="title">Title</label>
             <input
               id="title"
-              maxLength={180}
               value={draft.title}
               onChange={(event) => update("title", event.target.value)}
               placeholder="Copy the title exactly as shown"
             />
-            <span className="char-count">{draft.title.length}/180</span>
+            <span className={`char-count ${titleOver ? "error-text" : ""}`.trim()}>
+              {draft.title.trim().length}/{LIMITS.title}
+            </span>
+            {titleOver && (
+              <span className="error-text">Use {LIMITS.title} characters or fewer.</span>
+            )}
             {error?.field === "title" && <span className="error-text">{error.message}</span>}
           </div>
           <div className="field">
             <label htmlFor="description">Description</label>
             <textarea
               id="description"
-              maxLength={5000}
               value={draft.description}
               onChange={(event) => update("description", event.target.value)}
               placeholder="Paste the listing description"
             />
-            <span className="char-count">{draft.description.length}/5000</span>
+            <span className={`char-count ${descriptionOver ? "error-text" : ""}`.trim()}>
+              {draft.description.trim().length}/{LIMITS.description}
+            </span>
+            {descriptionOver && (
+              <span className="error-text">Use {LIMITS.description} characters or fewer.</span>
+            )}
             {error?.field === "description" && <span className="error-text">{error.message}</span>}
           </div>
           <div className="field">
@@ -298,19 +328,18 @@ export default function AssessPage() {
         </section>
 
         <div className="submit-bar">
-          <p className="retention">
-            Raw uploaded text is scrubbed before storage. The exact retention period remains an open
-            supervisor item and must be filled before the user study.
-          </p>
-          {error && !error.field && (
+          <p className="retention">{RETENTION_NOTICE}</p>
+          {error && !shownBesideField(error.field) && (
             <p className="error-text" role="alert">
-              {error.message}
+              {error.field && SELLER_FIELD_LABELS[error.field]
+                ? `${SELLER_FIELD_LABELS[error.field]}: ${error.message}`
+                : error.message}
             </p>
           )}
           <button
             className="button button-primary button-full"
             type="submit"
-            disabled={!mandatoryValid || submitting}
+            disabled={!canSubmit || submitting}
           >
             {submitting ? "Submitting…" : "Assess listing"}
           </button>

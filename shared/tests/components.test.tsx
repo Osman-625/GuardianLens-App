@@ -102,6 +102,52 @@ describe("SignalCardView", () => {
     expect(screen.getByText("No strong warning signs in the photos.")).toBeInTheDocument();
   });
 
+  it("shows the strongest reason as the card's finding, in words", () => {
+    render(
+      <SignalCardView
+        card={card({
+          status_word: "model check",
+          summary: "Analysed using a trained model.",
+          reasons: [
+            {
+              feature_key: "w",
+              direction: "raises",
+              display_text: `The wording "urgent" raised this signal's risk estimate.`,
+              rank: 1,
+            },
+          ],
+        })}
+        href="/x"
+      />,
+    );
+    expect(
+      screen.getByText(`The wording "urgent" raised this signal's risk estimate.`),
+    ).toBeInTheDocument();
+    expect(screen.getByText("main factor: raises risk")).toBeInTheDocument();
+    expect(screen.queryByText("model check")).not.toBeInTheDocument();
+    expect(screen.queryByText("Analysed using a trained model.")).not.toBeInTheDocument();
+  });
+
+  it("shows what the signal cannot show, under the finding", () => {
+    render(
+      <SignalCardView
+        card={card({ scope_note: "A good profile is not a safe listing." })}
+        href="/x"
+      />,
+    );
+    expect(screen.getByText("A good profile is not a safe listing.")).toBeInTheDocument();
+  });
+
+  it("keeps a technical scope note off a signal that could not be computed", () => {
+    render(
+      <SignalCardView
+        card={card({ available: false, scope_note: "The fusion model receives a missing signal." })}
+        href="/x"
+      />,
+    );
+    expect(screen.queryByText(/fusion model/)).not.toBeInTheDocument();
+  });
+
   it("shows each signal's own icon", () => {
     const { container, rerender } = render(
       <SignalCardView card={card({ signal: "visual" })} href="/x" />,

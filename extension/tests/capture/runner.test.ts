@@ -4,7 +4,14 @@
 // would inject our script. On other sites the click must only report "unsupported".
 // Dependencies are injected so the tests need no real browser tabs.
 import { describe, expect, it, vi } from "vitest";
-import { runCaptureForTab, type CaptureJob, type RunnerDeps } from "../../lib/capture/runner";
+import {
+  captureActiveTab,
+  runCaptureForTab,
+  type ActiveTabDeps,
+  type CaptureJob,
+  type RunnerDeps,
+} from "../../lib/capture/runner";
+import { PAGE_HOST_PATTERNS } from "../../lib/hosts";
 import type { CaptureResult } from "../../lib/capture/types";
 
 // The answer the fake capture script gives when asked to read the page.
@@ -81,5 +88,49 @@ describe("runCaptureForTab", () => {
       status: "error",
       error: "no_response",
     });
+  });
+});
+
+// The side panel's "Capture this page" button: it asks for access, then captures the open tab.
+describe("captureActiveTab", () => {
+  const CAROUSELL_TAB = { id: 9, url: "https://www.carousell.com.my/u/someone/" };
+  const access = (overrides: Partial<ActiveTabDeps> = {}): ActiveTabDeps => ({
+    requestAccess: vi.fn(async () => true),
+    activeTab: vi.fn(async () => CAROUSELL_TAB),
+    ...overrides,
+  });
+
+  it("asks only for the four marketplace hosts, then captures the open tab", async () => {
+    const { deps, states } = fakeDeps();
+    const tabs = access();
+    expect(await captureActiveTab(tabs, deps)).toBe(true);
+    expect(tabs.requestAccess).toHaveBeenCalledExactlyOnceWith(PAGE_HOST_PATTERNS);
+    expect(deps.inject).toHaveBeenCalledWith(9);
+    expect(states.map((state) => state.tabId)).toEqual([9, 9]);
+  });
+
+  it("reads nothing when the buyer declines access", async () => {
+    const { deps, states } = fakeDeps();
+    const tabs = access({ requestAccess: vi.fn(async () => false) });
+    expect(await captureActiveTab(tabs, deps)).toBe(false);
+    expect(tabs.activeTab).not.toHaveBeenCalled();
+    expect(deps.inject).not.toHaveBeenCalled();
+    expect(states).toEqual([]);
+  });
+
+  it("reads nothing when there is no tab", async () => {
+    const { deps, states } = fakeDeps();
+    expect(await captureActiveTab(access({ activeTab: vi.fn(async () => undefined) }), deps)).toBe(
+      false,
+    );
+    expect(deps.inject).not.toHaveBeenCalled();
+    expect(states).toEqual([]);
+  });
+
+  it("still never injects on a site that is not a marketplace", async () => {
+    const { deps } = fakeDeps();
+    const tabs = access({ activeTab: vi.fn(async () => ({ id: 3, url: "https://example.com/" })) });
+    await captureActiveTab(tabs, deps);
+    expect(deps.inject).not.toHaveBeenCalled();
   });
 });

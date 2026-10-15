@@ -130,6 +130,7 @@ class TrainedVisual:
         if not images:
             raise ValueError("Visual inference requires at least one image.")
         lid = str(assessment.id)
+        model_name = self.cfg["signals"]["visual"]["clip_model"]
         try:
             with torch.no_grad():
                 inputs = self.processor(images=images, return_tensors="pt").to(self.device)
@@ -165,7 +166,6 @@ class TrainedVisual:
                     self.device,
                 )[0]
             # Seed the training helper's category cache so it never loads another encoder.
-            model_name = self.cfg["signals"]["visual"]["clip_model"]
             visual._CAT_CACHE[(model_name, assessment.category)] = category
             store = dict(self.store)
             store[lid] = {"clip": clip, "sscd": sscd, "title": title}
@@ -176,3 +176,5 @@ class TrainedVisual:
         finally:
             for im in images:
                 im.close()
+            # The category is free text, so keeping its entry would grow the cache without bound.
+            visual._CAT_CACHE.pop((model_name, assessment.category), None)

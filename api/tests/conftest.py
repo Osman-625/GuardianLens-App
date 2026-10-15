@@ -1,4 +1,4 @@
-# Test setup shared by every API test: stub inference and in-memory storage, whatever the
+# Test setup shared by every API test: stub inference and an in-memory database, whatever the
 # developer's own .env file says.
 #
 # The API reads its settings from the environment and from .env. A developer switches the local
@@ -18,9 +18,9 @@ from api.settings import get_settings
 
 @pytest.fixture(autouse=True)
 def stub_inference_for_every_test(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Forces stub inference and in-memory storage for the length of each test."""
+    """Forces stub inference and an in-memory database for the length of each test."""
     monkeypatch.setenv("GUARDIANLENS_INFERENCE_MODE", "stub")
-    monkeypatch.setenv("GUARDIANLENS_STUB_MODE", "true")
+    monkeypatch.setenv("GUARDIANLENS_DATABASE_PATH", ":memory:")
     # Settings are cached after the first read: clear before (so these values are used) and after
     # (so they are not carried into whatever runs next).
     get_settings.cache_clear()

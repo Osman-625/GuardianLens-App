@@ -28,6 +28,8 @@ describe("captureCurrentPage", () => {
     const result = captureCurrentPage(doc, "https://www.carousell.com.my/u/someone/", NOW);
     expect(result.kind).toBe("seller");
     if (result.kind === "seller") {
+      // The panel compares this with the seller link the listing page offered.
+      expect(result.url).toBe("https://www.carousell.com.my/u/someone/");
       expect(result.seller.accountAgeDays).toEqual({
         status: "captured",
         value: 240,

@@ -17,14 +17,13 @@ def health(request: Request) -> HealthResponse:
     settings = get_app_settings(request)
     models = request.app.state.trained_models
     run_dir = settings.guardianlens_model_run_dir
+    # Public page: no folder paths and no raw error text (the start-up log has the visual reason).
     return HealthResponse(
         status="ok",
         environment=settings.guardianlens_env,
         stub_mode=models is None,
         inference_mode=settings.guardianlens_inference_mode,
         model_bundle_label=models.label if models else "dev-stub-unvalidated",
-        configured_model_run=str(run_dir) if run_dir else None,
         missing_model_artifacts=missing_artifacts(run_dir) if run_dir else [],
         visual_model_ready=bool(models and models.visual_engine),
-        visual_unavailable_reason=models.visual_unavailable if models else None,
     )

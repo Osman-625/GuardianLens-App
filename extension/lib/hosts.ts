@@ -9,9 +9,9 @@
 // new photo host, add it here and nowhere else.
 //
 // Boundary: no pattern here may match a marketplace PAGE host (mudah.my, carousell.com.my). Those
-// pages are read only through the buyer's click (activeTab); a pattern that also covered them
-// would put them in host_permissions and give the extension standing access. tests/hosts.test.ts
-// pins this.
+// pages are read only on the buyer's click (the icon's activeTab, or the panel button's optional
+// permission, PAGE_HOST_PATTERNS below); a pattern that also covered them would put them in
+// host_permissions and give the extension access at install. tests/hosts.test.ts pins this.
 //   - Mudah serves listing photos from rnudah.com (cdn.rnudah.com for the ad's photos, and
 //     img.rnudah.com for thumbnails), a different domain from the mudah.my site. Verified on a
 //     live Mudah listing on 2026-10-06.
@@ -21,6 +21,18 @@
 export const IMAGE_HOST_PATTERNS: string[] = [
   "https://media.karousell.com/*",
   "https://*.rnudah.com/*",
+];
+
+/**
+ * The marketplace PAGE hosts, as OPTIONAL permissions: not granted at install. The side panel's
+ * "Capture this page" button asks for them from a click; Chrome shows its own prompt once and the
+ * buyer can remove the access again at chrome://extensions. Kept apart from IMAGE_HOST_PATTERNS.
+ */
+export const PAGE_HOST_PATTERNS: string[] = [
+  "https://mudah.my/*",
+  "https://www.mudah.my/*",
+  "https://carousell.com.my/*",
+  "https://www.carousell.com.my/*",
 ];
 
 /**

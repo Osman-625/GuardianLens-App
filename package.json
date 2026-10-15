@@ -11,8 +11,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "format": "prettier --write shared extension frontend ml db scripts .github package.json .prettierrc.json",
-    "format:check": "prettier --check shared extension frontend ml db scripts .github package.json .prettierrc.json"
+    "format": "prettier --write shared extension frontend scripts .github package.json .prettierrc.json",
+    "format:check": "prettier --check shared extension frontend scripts .github package.json .prettierrc.json"
   },
   "devDependencies": {
     "prettier": "^3.9.9"

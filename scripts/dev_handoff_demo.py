@@ -20,7 +20,7 @@ from __future__ import annotations
 import argparse
 import io
 
-import httpx
+import httpx2
 from PIL import Image
 
 
@@ -40,7 +40,7 @@ def main() -> int:
     parser.add_argument("--site", default="http://localhost:3000", help="website base URL")
     args = parser.parse_args()
 
-    with httpx.Client(base_url=args.api, timeout=30) as client:
+    with httpx2.Client(base_url=args.api, timeout=30) as client:
         # Step 1: the extension's first call, creating an anonymous session.
         token = client.post("/api/v1/session").raise_for_status().json()["session_token"]
         # Step 2: a submission owned by that token (no cookie involved).

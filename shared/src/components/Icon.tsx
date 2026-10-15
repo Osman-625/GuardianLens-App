@@ -17,7 +17,13 @@ export type IconName =
   | "text-lines"
   | "person-clock"
   | "chevron-right"
-  | "check";
+  | "check"
+  | "eye"
+  | "document"
+  | "arrow-right"
+  | "arrow-left"
+  | "info"
+  | "lock";
 
 // The drawing of each icon on a 24 x 24 grid. Small filled circles are the dots of "!" and "?".
 const SHAPES: Record<IconName, ReactElement> = {
@@ -66,6 +72,33 @@ const SHAPES: Record<IconName, ReactElement> = {
   ),
   "chevron-right": <path d="M9 6l6 6-6 6" />,
   check: <path d="M5 12.5l4.2 4.2L19 7" />,
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  document: (
+    <>
+      <path d="M7 3h7l4 4v14H7z" />
+      <path d="M14 3v4h4M10 12h5M10 16h5" />
+    </>
+  ),
+  "arrow-right": <path d="M5 12h14M13 6l6 6-6 6" />,
+  "arrow-left": <path d="M19 12H5M11 6l-6 6 6 6" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" />
+      <circle cx="12" cy="7.9" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </>
+  ),
 };
 
 /** Props of an icon: which drawing to show, and optional extra class names. */

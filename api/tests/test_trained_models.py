@@ -114,7 +114,7 @@ def saved_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Settings
     (run / "run.json").write_text(json.dumps(meta), encoding="utf-8")
     settings.guardianlens_model_run_dir = run
     settings.guardianlens_inference_mode = "trained"
-    settings.guardianlens_dev_admin_token = "test-models"
+    settings.guardianlens_database_path = Path(":memory:")
     return settings, df
 
 
@@ -136,11 +136,19 @@ def test_saved_models_drive_api_result(
         assert "XLM" not in cards["textual"]["summary"]
         assert cards["visual"]["available"] is False
         assert cards["visual"]["probability"] is None
+        # A reason says what happened in THIS check ("raised"/"lowered"), never a general rule
+        # such as "is linked with higher risk", and the behavioural ones show the seller's value.
+        for card in cards.values():
+            for reason in card["reasons"]:
+                assert " linked with " not in reason["display_text"]
+                assert reason["display_text"].endswith("this signal's risk estimate.")
+        assert any("(" in reason["display_text"] for reason in cards["behavioural"]["reasons"])
+        # The seller-profile limit is always stated with the behavioural signal.
+        assert "does not mean a safe listing" in cards["behavioural"]["scope_note"]
         record = AssessmentRecord(
             session_id=uuid4(),
             platform="carousell",
             title_scrubbed="Used laptop",
-            description_scrubbed="Original unit in good condition. COD available.",
             title_for_inference="Used laptop",
             description_for_inference="Original unit in good condition. COD available.",
             price=1250,
@@ -169,11 +177,8 @@ def test_saved_models_drive_api_result(
         score, band = active.fuse(signals)
         assert (result["score"], result["band"]) == (score, band.value)
         assert client.get("/health").json()["stub_mode"] is False
-        bundle = client.get(
-            "/api/v1/admin/bundles", headers={"X-Admin-Token": "test-models"}
-        ).json()[0]
-        assert bundle["label"] == "fixture_run"
-        assert bundle["band_boundaries"]["low_moderate"] == pytest.approx(16.32444545047918)
+        assert active.label == "fixture_run"
+        assert active.bands["low_moderate"] == pytest.approx(0.1632444545047918)
         unknown = submit(
             client, account_age_days="", rating="", review_count="", active_listing_count=""
         )

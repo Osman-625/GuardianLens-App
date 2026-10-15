@@ -4,19 +4,18 @@ GuardianLens is a multimodal, explainable fraud-risk decision-support prototype 
 
 ## Read this first
 
-Inference defaults to `GUARDIANLENS_INFERENCE_MODE=stub`. For the latest trained TF-IDF/text-cues, XGBoost, CLIP/SSCD and calibrated fusion run, see [trained model setup](docs/TRAINED_MODELS.md). `GUARDIANLENS_STUB_MODE=true` selects local in-memory storage independently of inference. Trained mode loads saved artifacts and never silently substitutes development scores.
+Inference defaults to `GUARDIANLENS_INFERENCE_MODE=stub`. For the latest trained TF-IDF/text-cues, XGBoost, CLIP/SSCD and calibrated fusion run, see [trained model setup](docs/TRAINED_MODELS.md). Sessions, assessments and feedback are kept in a local SQLite file (see [Data storage](#data-storage)). Trained mode loads saved artifacts and never silently substitutes development scores.
 
 Stub scores are displayed with a permanent warning. They are not CLIP, SSCD, TF-IDF/text-cues, XGBoost, calibrated late-fusion, or SHAP results. They must not be used in Chapter 4 metrics, the user study, a real buying decision, or any claim that GuardianLens has been trained.
 
 ## Included
 
-- Next.js and TypeScript source for landing, submission, processing, result, explanation, feedback, session history, and research administration.
+- Next.js and TypeScript source for landing, submission, processing, result, explanation, feedback, and session history.
 - FastAPI endpoints matching the proposed `/api/v1` contract.
-- Field-level validation, unsupported Chinese-dominant text rejection, image type and size checks, metadata-stripping re-encoding, PII scrubbing, session ownership checks, feedback, history, rate limiting, and structured error envelopes.
+- Field-level validation, unsupported-script text rejection (Chinese, Tamil, Thai, Arabic and similar), image type and size checks, metadata-stripping re-encoding, PII scrubbing, session ownership checks, feedback, history, rate limiting, and structured error envelopes.
 - Development-only five-stage pipeline stubs with explicit missing-signal handling.
-- Supabase SQL migrations for the product schema, research schema, RLS posture, private storage buckets, and the hold-out study-listing trigger.
-- ML interfaces, bundle-manifest schema, explanation-template draft, and a latency harness that marks stub timing invalid for NFR-02.
-- Research CSV templates and draft consent, session, and questionnaire materials. No generated labels, participants, or study rows are included.
+- A timing script (`scripts/time_checks.py`) that measures real checks against the running API, for the NFR-02 evidence (10 seconds a check).
+- Draft consent, session, and questionnaire materials and a blank study-trial template. No generated labels, participants, or study rows are included.
 - Automated backend and ML contract tests, CI source, secret scanning, and prose punctuation checks.
 - The original eight specification documents under `docs/spec/`.
 
@@ -28,9 +27,7 @@ guardianlens/
   extension/            Browser extension (WXT): captures a listing on click, result in a side panel
   shared/               Types, API client, design tokens, and components used by the site and the extension
   api/                  FastAPI application and tests
-  ml/                   Contracts, bundle schema, configs, and latency harness
-  db/migrations/        Supabase migrations
-  research/             Human-only import templates and study drafts
+  research/             Study drafts and the study-trial template
   docs/spec/             Supplied pre-implementation documents
   docs/plans/            Build and next-step records
   docs/ch4-notes/        Incremental implementation notes
@@ -83,9 +80,11 @@ Then open `chrome://extensions` (or `edge://extensions`), turn on Developer mode
 
 Settings are build-time environment variables: `WXT_API_BASE_URL` (default `http://localhost:8000`) and `WXT_SITE_BASE_URL` (default `http://localhost:3000`). Changing the API origin is a rebuild, because the origin is also written into the extension's host permissions.
 
-To offer the extension from the website's landing page, run `npm run package:site -w extension`.
+The website's landing page offers the extension as a zip. `npm run build -w frontend` creates it first (`npm run package:site -w extension`, which you can also run on its own).
 
-Capture boundary: the extension reads a page only on the buyer's click, only that one page, and only on the two marketplaces. It never crawls, never runs in the background, and never navigates by itself. Its permissions are `activeTab`, `scripting`, `storage`, and `sidePanel`, and it has no standing access to the marketplace sites.
+Capture boundary: the extension reads a page only on the buyer's click (the toolbar icon, or the side panel's "Capture this page" button), only that one page, and only on the two marketplaces. It never crawls, never runs in the background, and never navigates by itself. Its permissions are `activeTab`, `scripting`, `storage`, and `sidePanel`. It has no access to the marketplace sites at install: the panel's button asks for it once, in Chrome's own prompt (an optional host permission the buyer can remove at `chrome://extensions`).
+
+Timing: with the API running, `python scripts/time_checks.py --runs 10` submits real checks and prints the server and wall-clock seconds of each, with the median and the maximum. Add `--output docs/evidence/latency.json` to keep them as evidence.
 
 Developer helper: `python scripts/dev_handoff_demo.py` plays the extension's part of the session handoff and prints a website URL that should open the result after the confirmation prompt.
 
@@ -93,43 +92,25 @@ Developer helper: `python scripts/dev_handoff_demo.py` plays the extension's par
 
 ```bash
 pytest -q
-python -m compileall -q api ml scripts
+python -m compileall -q api scripts
 python scripts/secret_scan.py
 python scripts/check_prose.py
+pip-audit .
 
 npm run lint
+npm run format:check
 npm run typecheck
 npm test
+npm audit --omit=dev --audit-level=high
 npm run build
 npm run test:e2e -w extension
 ```
 
-Last full run (2026-10-05): the Python suite passed with 32 tests, ruff, mypy, the secret scan, and the prose punctuation check were clean, and the JavaScript checks passed (shared 57 tests, extension 245 tests with 2 real-page fixture files skipped until recorded pages are added, lint, typecheck, production build, and 2 browser end-to-end tests). The manual checks that need live marketplace pages and a real browser are listed in `docs/superpowers/audits/2026-10-manual-checks.md`.
+Last full run (2026-10-15): the Python suite passed with 181 tests, ruff, strict mypy, the secret scan and the prose punctuation check were clean, and the JavaScript checks passed (shared 74 tests, extension 355 tests with 2 real-page fixture files skipped until recorded pages are added, frontend 35 tests, lint, the Prettier format check, typecheck, `npm audit` with 0 vulnerabilities in the shipped dependencies, the production build, and 6 browser end-to-end tests). `pip-audit` was last run on 2026-10-10. The manual checks that need live marketplace pages and a real browser are listed in `docs/superpowers/audits/2026-10-manual-checks.md`.
 
-## Development admin access
+## Data storage
 
-Set a local-only token in `.env`:
-
-```env
-GUARDIANLENS_DEV_ADMIN_TOKEN=replace-with-a-random-local-token
-```
-
-Open `/admin` and enter the same value. This is an explicit temporary gate. It does not satisfy the final Supabase Auth and role-check requirement and must be replaced before production-like testing.
-
-## Supabase setup
-
-Do not disable stub mode yet. First:
-
-1. Confirm proposal P-2 with the supervisor.
-2. Create a Supabase project and record the current free-tier limits.
-3. Apply migrations in filename order with the Supabase CLI.
-4. Verify every table, policy, trigger, and private bucket in a disposable project.
-5. Implement `api/repositories/supabase.py` with server-side service-role access and explicit session ownership checks.
-6. Add Supabase Auth verification for all `/api/v1/admin/*` endpoints.
-7. Add integration tests against a fresh migrated project.
-8. Only then set `GUARDIANLENS_STUB_MODE=false`.
-
-The service-role key must remain server-side. Never place it in `NEXT_PUBLIC_*`, browser code, logs, screenshots, or committed files.
+Sessions, assessments and feedback are kept in one SQLite file, `data/guardianlens.sqlite3` (git-ignored). Set `GUARDIANLENS_DATABASE_PATH` to put it elsewhere. The buyer's own wording and the photo bytes are never written to it. A check that was still running when the server stopped is closed as failed on the next start. There is no admin page: read the file with any SQLite tool (for example `sqlite3 data/guardianlens.sqlite3 "select source, count(*) from assessments group by source"`).
 
 ## Replacing development stubs with real models
 
@@ -144,7 +125,7 @@ The final active model bundle must contain:
 - Reviewed SHAP explanation templates.
 - Dataset split hash, seeds, dependency lock hash, component versions, and artefact SHA-256 values.
 
-The API must refuse to render a real band when an active bundle lacks confirmed boundaries. The development boundaries in `ml/configs/dev_stub.yaml` exist only to exercise the interface.
+The API must refuse to render a real band when an active bundle lacks confirmed boundaries. The stub's placeholder boundaries (`STUB_LOW_MAX` and `STUB_MODERATE_MAX` in `api/services/orchestrator.py`) exist only to exercise the interface.
 
 ## Open items that still block later gates
 
@@ -153,7 +134,6 @@ The API must refuse to render a real band when an active bundle lacks confirmed 
 - O-3: INTI ethics or approval requirement.
 - O-4: approved retention period.
 - O-5: licences for the exact pretrained weights.
-- O-6: current Supabase free-tier limits.
 - O-7: validation-derived risk-band boundaries.
 - O-8: written record of supervisor sign-off on Chapter 3 sections 3.3.7 to 3.3.9.
 

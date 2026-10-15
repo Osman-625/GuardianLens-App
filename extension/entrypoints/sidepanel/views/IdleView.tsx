@@ -1,6 +1,7 @@
 // Shown when the panel has nothing to review: before the first click, on pages that are not a
 // listing, on blocked pages, and after a failed capture. Each reason gets one plain sentence
 // that says what to do next, and two ways out (the website form and the session history).
+import { Icon } from "@guardianlens/shared";
 import type { PageState } from "@/lib/capture/types";
 import type { IdleReason } from "@/lib/panel/reducer";
 
@@ -32,19 +33,27 @@ export interface IdleViewProps {
   pageState?: PageState;
   /** Opens a path on the GuardianLens website in a new tab (for example "/assess"). */
   onOpenSite(path: string): void;
+  /** Captures the page open in the browser now, without reloading it or clicking the icon. */
+  onCapture(): void;
 }
 
 /** The "nothing to review yet" view. */
-export function IdleView({ reason, pageState, onOpenSite }: IdleViewProps) {
+export function IdleView({ reason, pageState, onOpenSite, onCapture }: IdleViewProps) {
   const message =
     reason === "blocked"
       ? ((pageState && BLOCKED_MESSAGES[pageState]) ?? MESSAGES.blocked)
       : MESSAGES[reason];
   return (
     <section className="panel-section" aria-live="polite">
+      <span className="panel-hero-icon" aria-hidden="true">
+        <Icon name="eye" />
+      </span>
       {/* Every panel view has one level-one heading, so screen readers can orient on it. */}
       <h1 className="panel-title">Check a listing</h1>
       <p>{message}</p>
+      <button type="button" className="button button-primary" onClick={onCapture}>
+        Capture this page
+      </button>
       <div className="panel-links">
         <button type="button" className="button button-text" onClick={() => onOpenSite("/assess")}>
           Use the website form

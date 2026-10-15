@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { BAND_COPY, Icon } from "@guardianlens/shared";
 import { apiFetch } from "@/lib/api";
 import type { HistoryItem } from "@/lib/types";
 import { useSessionClaim } from "@/lib/useSessionClaim";
@@ -31,7 +32,8 @@ export default function HistoryPage() {
       <p className="eyebrow">Current browser session</p>
       <h1 className="page-title">Listings checked this session</h1>
       <p className="page-lead">
-        This history is session-scoped. Cross-login saved history is outside the FYP2 scope.
+        Checks made in this browser session, from the website or the extension. They are not saved
+        to an account.
       </p>
       {error && <p className="error-text">{error}</p>}
       {items === null && !error && <div className="loading">Loading history…</div>}
@@ -58,7 +60,11 @@ export default function HistoryPage() {
                   {new Date(item.created_at).toLocaleString()} · {item.band} risk
                 </div>
               </div>
-              <div className="history-score" aria-label={`Score ${item.score} out of 100`}>
+              <div
+                className={`history-score band-${item.band}`}
+                aria-label={`Score ${item.score} out of 100`}
+              >
+                <Icon name={BAND_COPY[item.band].icon} />
                 {item.score}
               </div>
             </Link>

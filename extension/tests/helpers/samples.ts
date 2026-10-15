@@ -32,6 +32,7 @@ export function sampleListing(overrides: Partial<CapturedListing> = {}): Capture
     price: { status: "captured", value: 1250 },
     category: { status: "captured", value: "Computers and Tech > Laptops" },
     imageUrls: PHOTOS,
+    sellerUrl: null,
     pageState: "ready",
     ...overrides,
   };

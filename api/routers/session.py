@@ -15,7 +15,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request, Response, status
 
-from api.dependencies import get_app_settings, get_repository, require_trusted_origin
+from api.dependencies import (
+    check_ip_rate_limit,
+    get_app_settings,
+    get_repository,
+    require_trusted_origin,
+)
 from api.errors import AppError
 from api.schemas import SessionClaimRequest, SessionCreated
 
@@ -25,6 +30,7 @@ router = APIRouter(prefix="/api/v1", tags=["session"])
 @router.post("/session", response_model=SessionCreated, status_code=status.HTTP_201_CREATED)
 def create_session(request: Request) -> SessionCreated:
     """Mints a new anonymous session and returns its token. No cookie is set."""
+    check_ip_rate_limit(request)
     session_id = get_repository(request).create_session()
     return SessionCreated(session_token=session_id)
 

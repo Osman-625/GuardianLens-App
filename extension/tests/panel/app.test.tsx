@@ -67,6 +67,7 @@ function fakeDeps(storage: PanelStorage) {
     getToken: vi.fn(async () => "tok-123"),
   };
   const openUrl = vi.fn();
+  const captureActiveTab = vi.fn(async () => undefined);
   const deps: ControllerDeps = {
     client,
     photoDeps: {
@@ -75,10 +76,11 @@ function fakeDeps(storage: PanelStorage) {
     },
     storage,
     openUrl,
+    captureActiveTab,
     siteBaseUrl: SITE,
     wait: async () => undefined,
   };
-  return { deps, client, openUrl };
+  return { deps, client, openUrl, captureActiveTab };
 }
 
 describe("PanelApp", () => {
@@ -102,6 +104,45 @@ describe("PanelApp", () => {
         name: /Reading this page/,
       }),
     ).toBeInTheDocument();
+  });
+
+  it("'Open seller page' opens the seller link the listing page offered", async () => {
+    const { storage, emit } = fakeStorage();
+    const { deps, openUrl } = fakeDeps(storage);
+    render(<PanelApp deps={deps} />);
+    await emit(
+      listingJob(10, sampleListing({ sellerUrl: "https://www.carousell.com.my/u/someone/" })),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Open seller page" }));
+    expect(openUrl).toHaveBeenCalledExactlyOnceWith("https://www.carousell.com.my/u/someone/");
+  });
+
+  it("'Capture this page' reads the page open in the browser now", async () => {
+    const { storage, emit } = fakeStorage();
+    const { deps, captureActiveTab } = fakeDeps(storage);
+    render(<PanelApp deps={deps} />);
+    await emit(listingJob(10, sampleListing()));
+    await userEvent.click(await screen.findByRole("button", { name: "Capture this page" }));
+    expect(captureActiveTab).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the 'could not be read' message when 'Capture this page' fails", async () => {
+    const { storage, emit } = fakeStorage();
+    const { deps, captureActiveTab } = fakeDeps(storage);
+    captureActiveTab.mockRejectedValueOnce(new Error("no gesture"));
+    render(<PanelApp deps={deps} />);
+    await emit(listingJob(10, sampleListing()));
+    await userEvent.click(await screen.findByRole("button", { name: "Capture this page" }));
+    expect(await screen.findByText(/The page could not be read/)).toBeInTheDocument();
+  });
+
+  it("never opens a stored link that is not a seller page of a supported marketplace", async () => {
+    const { storage, emit } = fakeStorage();
+    const { deps, openUrl } = fakeDeps(storage);
+    render(<PanelApp deps={deps} />);
+    await emit(listingJob(10, sampleListing({ sellerUrl: "https://example.com/u/someone/" })));
+    await userEvent.click(await screen.findByRole("button", { name: "Open seller page" }));
+    expect(openUrl).not.toHaveBeenCalled();
   });
 
   it("goes from capture to result and submits only once when the button is pressed twice", async () => {
@@ -163,7 +204,7 @@ describe("PanelApp", () => {
     await screen.findByText("Review what we captured");
     await userEvent.click(screen.getByRole("button", { name: "Check listing" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Is the local server running?");
+    expect(await screen.findByRole("alert")).toHaveTextContent("not reachable");
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("Review what we captured")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Used laptop in good condition");

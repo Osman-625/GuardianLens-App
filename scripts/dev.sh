@@ -11,7 +11,7 @@ if [ -z "${CONDA_PREFIX:-}" ]; then
   exit 1
 fi
 trap 'kill 0' EXIT INT TERM
-uvicorn api.main:app --reload --port 8000 &
+uvicorn api.main:app --reload --host localhost --port 8000 &
 (
   cd frontend
   npm run dev

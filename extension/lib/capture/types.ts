@@ -7,7 +7,7 @@ import type { Platform, PlatformHost } from "@guardianlens/shared";
  * Version of the extraction logic. Bump it whenever the adapters change in a way that could
  * change what is captured, so research records can tell which logic produced a capture.
  */
-export const ADAPTER_VERSION = "1";
+export const ADAPTER_VERSION = "2";
 
 /** Message type the service worker sends to the injected capture script to request a capture. */
 export const CAPTURE_MESSAGE = "guardianlens:capture";
@@ -43,6 +43,12 @@ export interface CapturedListing {
   category: CapturedField<string>;
   /** Candidate photo URLs (up to 12), best first. */
   imageUrls: string[];
+  /**
+   * The seller's profile page, when the listing page links to it (Carousell and Mudah profile
+   * pages are /u/<name>). The panel offers it as "Open seller page" for the second capture. Kept
+   * in the panel only; never sent to the API.
+   */
+  sellerUrl: string | null;
   pageState: PageState;
 }
 
@@ -60,6 +66,8 @@ export type CaptureResult =
   | {
       kind: "seller";
       platform: Platform;
+      /** The page that was read, so the panel can check it is the seller the listing linked to. */
+      url: string;
       seller: CapturedSeller;
       pageState: PageState;
     }

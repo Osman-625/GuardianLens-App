@@ -21,14 +21,16 @@ condaenv.*.requirements.txt
 .env.*
 !.env.example
 
-# Runtime artefacts
+# Runtime artifacts
+# The SQLite database (data/guardianlens.sqlite3, or wherever GUARDIANLENS_DATABASE_PATH points)
+# and the journal and WAL files SQLite writes beside it. It holds study data: never commit it.
 runtime/
 *.log
 *.sqlite3
+*.sqlite3-*
 
-# Model artefacts and data
-ml/checkpoints/
-ml/artifacts/
+# Model artifacts and data
+/data/
 research/data/
 research/exports/
 
@@ -60,3 +62,6 @@ extension/test-results/
 Thumbs.db
 .vscode/
 .idea/
+
+# Written by `next dev` each time it starts (agent hints for Next.js); not ours to commit
+frontend/AGENTS.md

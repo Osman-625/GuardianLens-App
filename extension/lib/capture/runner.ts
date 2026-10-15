@@ -10,6 +10,7 @@
 // are the real implementations.
 import { browser } from "wxt/browser";
 import { platformFromHost } from "./classify";
+import { PAGE_HOST_PATTERNS } from "../hosts";
 import { writeSession } from "../storage";
 import { CAPTURE_MESSAGE, type CaptureResult } from "./types";
 
@@ -50,6 +51,35 @@ export const defaultDeps: RunnerDeps = {
     (await browser.tabs.sendMessage(tabId, { type: CAPTURE_MESSAGE })) as CaptureResult | undefined,
   now: () => Date.now(),
 };
+
+/** The browser calls behind the side panel's "Capture this page" button, injectable for tests. */
+export interface ActiveTabDeps {
+  /** Asks Chrome for access to the marketplace sites; its prompt shows only the first time. */
+  requestAccess(origins: string[]): Promise<boolean>;
+  /** The tab that is open in the window the buyer last used. */
+  activeTab(): Promise<{ id?: number; url?: string } | undefined>;
+}
+
+const defaultActiveTabDeps: ActiveTabDeps = {
+  requestAccess: (origins) => browser.permissions.request({ origins }),
+  activeTab: async () => (await browser.tabs.query({ active: true, lastFocusedWindow: true }))[0],
+};
+
+/**
+ * The panel's "Capture this page": the same capture as the toolbar click, on the tab open now.
+ * Call it straight from the click, because Chrome allows its permission prompt only inside one.
+ * @returns false when nothing was read: the buyer declined access, or no tab was found.
+ */
+export async function captureActiveTab(
+  access: ActiveTabDeps = defaultActiveTabDeps,
+  deps: RunnerDeps = defaultDeps,
+): Promise<boolean> {
+  if (!(await access.requestAccess(PAGE_HOST_PATTERNS))) return false;
+  const tab = await access.activeTab();
+  if (tab?.id === undefined) return false;
+  await runCaptureForTab({ id: tab.id, url: tab.url }, deps);
+  return true;
+}
 
 /** True when the URL is https on one of the four supported marketplace hosts. */
 function isSupportedPage(url: string | undefined): boolean {

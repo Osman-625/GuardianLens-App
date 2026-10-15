@@ -48,6 +48,45 @@ describe("structured data page (Carousell style)", () => {
   });
 });
 
+// The seller step: a listing page that links to the seller's profile lets the panel offer
+// "Open seller page" for the second capture. Real Carousell listings carry a /u/<name> link.
+describe("the seller's profile link on a listing page", () => {
+  const link = (href: string, platformUrl = CAROUSELL_URL) =>
+    captureListing(page(`<h1>Used laptop</h1><a href="${href}">Seller</a>`), platformUrl).sellerUrl;
+
+  it("is read from a relative Carousell profile link", () => {
+    expect(link("/u/some-seller/")).toBe("https://www.carousell.com.my/u/some-seller/");
+  });
+
+  it("is read from a Mudah profile link on a Mudah listing", () => {
+    expect(link("https://www.mudah.my/u/some-seller", MUDAH_URL)).toBe(
+      "https://www.mudah.my/u/some-seller",
+    );
+  });
+
+  it("is null when the page links to no seller", () => {
+    expect(link("/p/another-listing-999/")).toBeNull();
+    expect(captureListing(loadSynthetic("carousell-jsonld"), CAROUSELL_URL).sellerUrl).toBeNull();
+  });
+
+  it("ignores a profile on another marketplace and on other sites", () => {
+    expect(link("https://www.mudah.my/u/someone")).toBeNull(); // a Mudah profile on a Carousell page
+    expect(link("https://example.com/u/someone/")).toBeNull();
+  });
+
+  it("is not thrown by a link that is not a URL", () => {
+    expect(link("http://[bad")).toBeNull();
+    expect(link("javascript:void(0)")).toBeNull();
+  });
+
+  it("takes the first matching link", () => {
+    const doc = page(`<a href="/u/first/">a</a><a href="/u/second/">b</a>`);
+    expect(captureListing(doc, CAROUSELL_URL).sellerUrl).toBe(
+      "https://www.carousell.com.my/u/first/",
+    );
+  });
+});
+
 describe("DOM-only page (Mudah style, no embedded ad data)", () => {
   const listing = captureListing(loadSynthetic("mudah-dom-only"), MUDAH_URL);
 

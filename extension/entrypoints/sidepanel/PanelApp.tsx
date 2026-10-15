@@ -1,6 +1,7 @@
 // The side panel UI, driven entirely by `deps` so tests can run it with fakes and the real panel
 // can run it with the real API client. It picks the view for the controller's state and wires
 // each view's callbacks to the controller's actions.
+import { Wordmark } from "@guardianlens/shared";
 import { usePanelController, type ControllerDeps } from "@/lib/panel/controller";
 import { CheckingView } from "./views/CheckingView";
 import { FailureView } from "./views/FailureView";
@@ -17,8 +18,7 @@ export function PanelApp({ deps }: { deps: ControllerDeps }) {
     <div className="panel">
       <header className="panel-header">
         <span className="wordmark">
-          <span className="lens-mark" aria-hidden="true" />
-          GuardianLens
+          <Wordmark />
         </span>
       </header>
       <main>
@@ -27,6 +27,7 @@ export function PanelApp({ deps }: { deps: ControllerDeps }) {
             reason={view.reason}
             pageState={view.pageState}
             onOpenSite={actions.openSitePath}
+            onCapture={actions.capture}
           />
         )}
         {view.name === "capturing" && (
@@ -44,6 +45,8 @@ export function PanelApp({ deps }: { deps: ControllerDeps }) {
             onEdit={actions.edit}
             onTogglePhoto={actions.togglePhoto}
             onSubmit={actions.submit}
+            onOpenSeller={actions.openSellerPage}
+            onCapture={actions.capture}
             onOpenSite={actions.openSitePath}
           />
         )}

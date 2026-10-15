@@ -14,6 +14,7 @@ import {
   DevBanner,
   FEEDBACK_HEADING,
   FEEDBACK_OPTIONS,
+  Icon,
   ScoreRegion,
   SignalCardView,
 } from "@guardianlens/shared";
@@ -31,6 +32,7 @@ export default function ResultPage() {
   const [verdict, setVerdict] = useState<string>("");
   const [comment, setComment] = useState("");
   const [feedbackState, setFeedbackState] = useState<"idle" | "saving" | "saved">("idle");
+  const [feedbackFailed, setFeedbackFailed] = useState(false);
 
   // Load the result once any session handoff has finished.
   useEffect(() => {
@@ -47,11 +49,18 @@ export default function ResultPage() {
     event.preventDefault();
     if (!verdict) return;
     setFeedbackState("saving");
-    await apiFetch<void>(`/api/v1/assess/${params.id}/feedback`, {
-      method: "POST",
-      body: JSON.stringify({ verdict, comment: comment || null }),
-    });
-    setFeedbackState("saved");
+    setFeedbackFailed(false);
+    try {
+      await apiFetch<void>(`/api/v1/assess/${params.id}/feedback`, {
+        method: "POST",
+        body: JSON.stringify({ verdict, comment: comment || null }),
+      });
+      setFeedbackState("saved");
+    } catch {
+      // Feedback is optional: the form comes back with the choices kept, so the buyer can retry.
+      setFeedbackState("idle");
+      setFeedbackFailed(true);
+    }
   }
 
   if (loadError) {
@@ -75,26 +84,57 @@ export default function ResultPage() {
     );
 
   return (
-    <main className="page">
+    <main className="page page-wide result-page">
+      <Link className="back-link" href="/history">
+        <Icon name="arrow-left" />
+        This session
+      </Link>
       {result.development_stub && <DevBanner />}
-      <p className="eyebrow">Assessment result</p>
+      <p className="eyebrow">Listing assessment</p>
       <h1 className="page-title">{result.title}</h1>
-      <p className="page-lead">
-        Completed in {result.total_latency_ms} ms using {result.model_bundle_label}.
-      </p>
+      <p className="page-lead">Checked {new Date(result.created_at).toLocaleString()}.</p>
 
-      <ScoreRegion score={result.score} band={result.band} disclaimer={result.disclaimer} />
+      <ScoreRegion
+        id={result.assessment_id}
+        score={result.score}
+        band={result.band}
+        disclaimer={result.disclaimer}
+      />
 
-      <section className="signal-grid" aria-label="Signal summaries">
-        {result.signal_cards.map((card) => (
-          <SignalCardView
-            card={card}
-            href={`/assess/${result.assessment_id}/explanation#${card.signal}`}
-            LinkComponent={Link}
-            key={card.signal}
-          />
-        ))}
-      </section>
+      <div className="result-grid">
+        <section aria-labelledby="signals-heading">
+          <div className="section-head">
+            <div>
+              <h2 id="signals-heading">What influenced the assessment</h2>
+              <p className="helper">Individual signal findings, interpreted together</p>
+            </div>
+            <Link href={`/assess/${result.assessment_id}/explanation`}>
+              Full explanation
+              <Icon name="arrow-right" />
+            </Link>
+          </div>
+          <div className="signal-grid" aria-label="Signal summaries">
+            {result.signal_cards.map((card) => (
+              <SignalCardView
+                card={card}
+                href={`/assess/${result.assessment_id}/explanation#${card.signal}`}
+                LinkComponent={Link}
+                key={card.signal}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="card checks-card">
+          <h2>Checks to do before paying</h2>
+          <p className="helper">Independent steps before a transaction</p>
+          <ol className="check-list">
+            {result.suggested_checks.map((check) => (
+              <li key={check}>{check}</li>
+            ))}
+          </ol>
+        </section>
+      </div>
 
       {result.missing_data_notices.length > 0 && (
         <section className="notice">
@@ -105,16 +145,7 @@ export default function ResultPage() {
         </section>
       )}
 
-      <section className="card">
-        <h2>Checks to do before paying</h2>
-        <ol className="check-list">
-          {result.suggested_checks.map((check) => (
-            <li key={check}>{check}</li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="card" style={{ marginTop: 16 }}>
+      <section className="card feedback-card">
         <h2>{FEEDBACK_HEADING}</h2>
         {!showFeedback && (
           <button className="button button-secondary" onClick={() => setShowFeedback(true)}>
@@ -137,7 +168,7 @@ export default function ResultPage() {
                 </label>
               ))}
             </div>
-            <div className="field" style={{ marginTop: 14 }}>
+            <div className="field">
               <label htmlFor="feedback-comment">Optional comment</label>
               <textarea
                 id="feedback-comment"
@@ -149,6 +180,11 @@ export default function ResultPage() {
                 Do not include names, phone numbers, account details, or other personal information.
               </span>
             </div>
+            {feedbackFailed && (
+              <p className="error-text" role="alert">
+                Feedback could not be saved. Try again.
+              </p>
+            )}
             <button
               className="button button-primary"
               disabled={!verdict || feedbackState === "saving"}
@@ -166,6 +202,7 @@ export default function ResultPage() {
         </Link>
         <Link className="button button-secondary" href="/history">
           This session
+          <Icon name="arrow-right" />
         </Link>
       </div>
     </main>

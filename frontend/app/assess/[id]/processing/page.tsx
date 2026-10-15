@@ -7,7 +7,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { SLOW_WAIT_COPY, StageList, type PipelineStage } from "@guardianlens/shared";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, GuardianLensApiError } from "@/lib/api";
+
+// How many times in a row a status request may never reach the server before the page gives up.
+// The check keeps running on the server, so one dropped request (a Wi-Fi blip) must not end it.
+const LOST_REQUESTS_ALLOWED = 3;
 
 /** Renders the progress screen and follows the check until it completes, fails, or is cancelled. */
 export default function ProcessingPage() {
@@ -19,8 +23,11 @@ export default function ProcessingPage() {
 
   useEffect(() => {
     let active = true;
+    let lostRequests = 0;
     // After 8 seconds the page says so honestly; there is no percentage or fake progress.
     const slowTimer = window.setTimeout(() => setLongWait(true), 8000);
+    // The pending "ask again" timer, kept so leaving the page cancels it.
+    let nextPoll: number | undefined;
 
     // Asks for the status, shows the current stage, and asks again 900 ms later until the check
     // is complete (open the result) or has failed or been abandoned (show the reason).
@@ -32,6 +39,7 @@ export default function ProcessingPage() {
           message: string | null;
         }>(`/api/v1/assess/${params.id}/status`);
         if (!active) return;
+        lostRequests = 0;
         setStage(result.stage);
         if (result.status === "complete") {
           router.replace(`/assess/${params.id}`);
@@ -41,10 +49,17 @@ export default function ProcessingPage() {
           setFailure(result.message ?? "The check could not be completed.");
           return;
         }
-        window.setTimeout(poll, 900);
-      } catch {
-        if (active)
-          setFailure("The processing status could not be loaded. Your form draft is still saved.");
+        nextPoll = window.setTimeout(poll, 900);
+      } catch (caught) {
+        if (!active) return;
+        // A request that never reached the server (fetch's own error, not an answer from the
+        // API) is tried again a few times; an answer from the API, even an error, is final.
+        if (!(caught instanceof GuardianLensApiError) && lostRequests < LOST_REQUESTS_ALLOWED) {
+          lostRequests += 1;
+          nextPoll = window.setTimeout(poll, 900);
+          return;
+        }
+        setFailure("The processing status could not be loaded. Your form draft is still saved.");
       }
     }
 
@@ -52,6 +67,7 @@ export default function ProcessingPage() {
     return () => {
       active = false;
       window.clearTimeout(slowTimer);
+      window.clearTimeout(nextPoll);
     };
   }, [params.id, router]);
 
