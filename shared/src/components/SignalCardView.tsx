@@ -2,6 +2,7 @@
 // they read as a set (Design Brief: Similarity rule).
 import type { ElementType, ReactNode } from "react";
 import { SIGNAL_ICONS, SIGNAL_NAMES } from "../copy";
+import { sentenceCase } from "../format";
 import type { SignalCard } from "../types";
 import { Icon } from "./Icon";
 
@@ -38,7 +39,7 @@ export function SignalCardView({ card, href, LinkComponent, onOpen }: SignalCard
   // stay (they say how the signal was checked, which is all there is to say).
   const top = card.available ? card.reasons[0] : undefined;
   // Named as the main factor, not the signal's verdict: the top reason is one of up to three.
-  const status = top ? `main factor: ${top.direction} risk` : card.status_word;
+  const status = sentenceCase(top ? `main factor: ${top.direction} risk` : card.status_word);
   const body = (
     <>
       <div className="signal-heading">

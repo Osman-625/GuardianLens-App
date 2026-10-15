@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BAND_COPY, Icon } from "@guardianlens/shared";
+import { BAND_COPY, formatDateTime, Icon } from "@guardianlens/shared";
 import { apiFetch } from "@/lib/api";
 import type { HistoryItem } from "@/lib/types";
 import { useSessionClaim } from "@/lib/useSessionClaim";
@@ -57,7 +57,7 @@ export default function HistoryPage() {
               <div>
                 <div className="history-title">{item.title}</div>
                 <div className="history-meta">
-                  {new Date(item.created_at).toLocaleString()} · {item.band} risk
+                  {formatDateTime(item.created_at)} · {item.band} risk
                 </div>
               </div>
               <div

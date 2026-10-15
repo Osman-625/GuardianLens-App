@@ -356,10 +356,6 @@ main.page {
   scroll-margin-top: 88px;
   margin-bottom: var(--space-lg);
 }
-/* The status word ("model check") reads the same here as on the result cards ("Model Check"). */
-.status-word {
-  text-transform: capitalize;
-}
 /* Each reason leads with its direction in words ("raises risk"), so the direction never rests on
    colour alone. */
 .reason-list {
@@ -382,10 +378,8 @@ main.page {
   padding: 0 var(--space-sm);
   background: var(--color-surface);
   color: var(--color-ink-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-label);
   font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: capitalize;
 }
 .reason-raises .reason-direction {
   color: var(--color-risk-high);
@@ -393,13 +387,14 @@ main.page {
 .reason-lowers .reason-direction {
   color: var(--color-risk-low);
 }
-.scope-note {
+/* What the evidence can and cannot show: a caption under the reasons, not another reason box. */
+.card p.scope-note {
   margin-top: var(--space-md);
-  padding: var(--space-md);
-  border-radius: var(--radius-input);
-  background: var(--color-surface-alt);
-  color: var(--color-ink-muted);
+  color: var(--color-ink-faint);
   font-size: var(--text-sm);
+}
+.card .disclaimer + .helper {
+  margin-top: var(--space-sm);
 }
 
 /* The result page: a large dial, then the signals beside the manual checks. */

@@ -69,25 +69,29 @@ export function ResultView({
         ))}
       </div>
 
-      {result.missing_data_notices.length > 0 && (
+      {/* One notice for missing information. When the seller's details are what is missing, it
+          says how to add them (the panel keeps the draft, so a seller-page capture returns to
+          Review); the card above already says the signal is unknown, so it is not repeated. */}
+      {behaviouralUnknown ? (
         <section className="notice">
-          <strong>Limited information</strong>
+          <strong>Seller details were not included</strong>
           {result.missing_data_notices.map((text) => (
             <p key={text}>{text}</p>
           ))}
-        </section>
-      )}
-
-      {/* The behavioural signal is built from the seller's details. When it is unknown, say how to
-          add them: the panel keeps the draft, so a seller-page capture returns to Review. */}
-      {behaviouralUnknown && (
-        <section className="notice">
-          <strong>Seller details were not included</strong>
           <p>
-            The behavioural signal is unknown without them. To include them, open the seller&apos;s
-            page, click the GuardianLens icon there, then press Check listing again.
+            To include them, open the seller&apos;s page, click the GuardianLens icon there, then
+            press Check listing again.
           </p>
         </section>
+      ) : (
+        result.missing_data_notices.length > 0 && (
+          <section className="notice">
+            <strong>Limited information</strong>
+            {result.missing_data_notices.map((text) => (
+              <p key={text}>{text}</p>
+            ))}
+          </section>
+        )
       )}
 
       {mostProtectiveCheck && (

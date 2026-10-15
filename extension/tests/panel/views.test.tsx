@@ -167,11 +167,11 @@ describe("ReviewView", () => {
     expect(
       screen.getByText(/Missing seller details are treated as unknown, not as suspicious/),
     ).toBeInTheDocument();
-    expect(
-      within(fieldOf("Rating out of 5")).getByText(
-        "Not found. Treated as unknown, not as suspicious.",
-      ),
-    ).toBeInTheDocument();
+    // Each empty field says "Not found" and points at the group note for the full sentence.
+    expect(within(fieldOf("Rating out of 5")).getByText("Not found")).toBeInTheDocument();
+    expect(screen.getByLabelText("Rating out of 5")).toHaveAccessibleDescription(
+      /Missing seller details are treated as unknown, not as suspicious/,
+    );
     expect(screen.getByRole("button", { name: "Check listing" })).toBeEnabled();
   });
 
@@ -292,7 +292,7 @@ describe("ReviewView", () => {
         draftFromListing(sampleListing({ platform: "mudah", platformHost: "www.mudah.my" })),
       );
       expect(screen.getAllByText(/Mudah does not show this/)).toHaveLength(2);
-      expect(screen.getAllByText(/^Not found\. Treated as unknown/)).toHaveLength(2);
+      expect(screen.getAllByText(/^Not found$/)).toHaveLength(2);
     });
 
     it("has a 'Capture this page' button for the seller's page", async () => {

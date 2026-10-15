@@ -563,22 +563,20 @@ details.optional summary {
   color: var(--color-risk-low);
 }
 
-/* ScoreRegion + BandChip: the dial, the band chip directly beneath it, and the disclaimer as one
-   bounded region. In a narrow box (the side panel, a phone) the three stack; given room, the
-   disclaimer moves beside the dial and band. The website enlarges the dial with --dial. */
+/* ScoreRegion + BandChip: the dial, the band chip, and the disclaimer as one bounded region. In a
+   narrow box (the side panel, a phone) the band sits directly beneath the dial; given room it
+   moves beside it. The disclaimer is always a full-width footnote. The website enlarges the dial
+   with --dial. */
 .score-region {
   --dial: 104px;
   container-type: inline-size;
+  display: grid;
+  gap: var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
   padding: var(--space-lg);
-}
-/* A container cannot restyle itself from its own query, so the grid sits one level in. */
-.score-region-inner {
-  display: grid;
-  gap: var(--space-md);
 }
 .score-main {
   display: grid;
@@ -660,17 +658,13 @@ details.optional summary {
   font-size: var(--text-sm);
   text-align: left;
 }
-@container (min-width: 520px) {
-  .score-region-inner {
-    display: grid;
-    grid-template-columns: auto 1fr;
+/* Given room, the band sits beside the dial (vertically centred) and the disclaimer stays a
+   full-width footnote under both. The side panel is narrower than this, so it keeps the stack. */
+@container (min-width: 440px) {
+  .score-main {
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: var(--space-xl);
-  }
-  .score-region-inner > .disclaimer {
-    padding: 0 0 0 var(--space-xl);
-    border-top: 0;
-    border-left: 1px solid var(--color-border);
   }
 }
 
@@ -746,9 +740,8 @@ a.signal-card:active {
   padding: 2px 10px;
   background: var(--color-surface-tint);
   color: var(--color-ink-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-label);
   font-weight: 650;
-  text-transform: capitalize;
 }
 .signal-status .icon {
   width: 13px;

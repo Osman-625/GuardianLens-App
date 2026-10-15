@@ -95,13 +95,11 @@ export function ScoreRegion({ score, band, disclaimer, id }: ScoreRegionProps) {
   const shown = Math.round(score);
   return (
     <section className="score-region" aria-label={`Risk score ${shown} out of 100, ${band}`}>
-      <div className="score-region-inner">
-        <div className="score-main">
-          <ScoreDial score={shown} band={band} revealKey={id ?? `${shown}-${band}`} />
-          <BandChip band={band} />
-        </div>
-        <p className="disclaimer">{disclaimer}</p>
+      <div className="score-main">
+        <ScoreDial score={shown} band={band} revealKey={id ?? `${shown}-${band}`} />
+        <BandChip band={band} />
       </div>
+      <p className="disclaimer">{disclaimer}</p>
     </section>
   );
 }

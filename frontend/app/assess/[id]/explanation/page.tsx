@@ -10,7 +10,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BAND_ROUNDING_NOTE, DevBanner } from "@guardianlens/shared";
+import { BAND_ROUNDING_NOTE, DevBanner, sentenceCase } from "@guardianlens/shared";
 import { apiFetch } from "@/lib/api";
 import type { AssessmentResult } from "@/lib/types";
 import { useSessionClaim } from "@/lib/useSessionClaim";
@@ -71,7 +71,7 @@ export default function ExplanationPage() {
         <section className="card explanation-section" id={card.signal} key={card.signal}>
           <h2>{labels[card.signal]}</h2>
           <p>
-            {!card.available && <strong className="status-word">{card.status_word}. </strong>}
+            {!card.available && <strong>{sentenceCase(card.status_word)}. </strong>}
             {card.summary}
           </p>
           {card.reasons.length > 0 ? (
@@ -81,7 +81,9 @@ export default function ExplanationPage() {
                   className={`reason reason-${reason.direction}`}
                   key={`${reason.feature_key}-${reason.rank}`}
                 >
-                  <span className="reason-direction">{reason.direction} risk</span>
+                  <span className="reason-direction">
+                    {sentenceCase(`${reason.direction} risk`)}
+                  </span>
                   {reason.display_text}
                 </li>
               ))}

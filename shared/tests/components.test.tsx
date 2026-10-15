@@ -123,7 +123,7 @@ describe("SignalCardView", () => {
     expect(
       screen.getByText(`The wording "urgent" raised this signal's risk estimate.`),
     ).toBeInTheDocument();
-    expect(screen.getByText("main factor: raises risk")).toBeInTheDocument();
+    expect(screen.getByText("Main factor: raises risk")).toBeInTheDocument();
     expect(screen.queryByText("model check")).not.toBeInTheDocument();
     expect(screen.queryByText("Analysed using a trained model.")).not.toBeInTheDocument();
   });

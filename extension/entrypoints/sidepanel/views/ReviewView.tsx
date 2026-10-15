@@ -28,10 +28,12 @@ const STATUS_TEXT: Record<DraftField["status"], string> = {
   edited: "Edited by you",
   not_found: "Not found. Enter it yourself.",
 };
-// The status line for an optional seller field that was not found: it says "unknown", not "missing".
-const OPTIONAL_NOT_FOUND = "Not found. Treated as unknown, not as suspicious.";
+// The status line for an optional seller field that was not found. The group's note above the
+// fields says once that missing details are unknown, not suspicious; each field points to it.
+const OPTIONAL_NOT_FOUND = "Not found";
+const SELLER_NOTE_ID = "seller-unknown-note";
 // Mudah seller pages have no ratings or reviews, so for them "not found" is expected, not a miss.
-const MUDAH_NO_RATINGS = "Mudah does not show this. Treated as unknown, not as suspicious.";
+const MUDAH_NO_RATINGS = "Mudah does not show this";
 
 // What a disabled submit button is waiting for, in the words shown above it.
 const NEEDS: Record<DraftFieldKey | "photos", string> = {
@@ -113,15 +115,18 @@ function TextField({
   const statusId = `${id}-status`;
   const countId = `${id}-count`;
   const errorId = `${id}-error`;
-  const describedBy = [statusId, limit !== undefined ? countId : null, error ? errorId : null]
+  const unknownOptional = optional && field.status === "not_found";
+  const describedBy = [
+    statusId,
+    unknownOptional ? SELLER_NOTE_ID : null,
+    limit !== undefined ? countId : null,
+    error ? errorId : null,
+  ]
     .filter(Boolean)
     .join(" ");
   const length = field.value.trim().length;
   const over = limit !== undefined && length > limit;
-  const status =
-    field.status === "not_found" && optional
-      ? (notFoundText ?? OPTIONAL_NOT_FOUND)
-      : STATUS_TEXT[field.status];
+  const status = unknownOptional ? (notFoundText ?? OPTIONAL_NOT_FOUND) : STATUS_TEXT[field.status];
   const shared = {
     id,
     value: field.value,
@@ -345,7 +350,11 @@ export function ReviewView({
             Reads the page open in your browser now. Use it on the seller&apos;s page.
           </p>
         </div>
-        <p className="helper">Missing seller details are treated as unknown, not as suspicious.</p>
+        {SELLER_INPUTS.some(({ key }) => draft.fields[key].value.trim() === "") && (
+          <p id={SELLER_NOTE_ID} className="helper">
+            Missing seller details are treated as unknown, not as suspicious.
+          </p>
+        )}
         {SELLER_INPUTS.map(({ key, id, label, inputMode }) => (
           <TextField
             key={key}

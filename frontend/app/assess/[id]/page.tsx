@@ -14,6 +14,7 @@ import {
   DevBanner,
   FEEDBACK_HEADING,
   FEEDBACK_OPTIONS,
+  formatDateTime,
   Icon,
   ScoreRegion,
   SignalCardView,
@@ -92,7 +93,7 @@ export default function ResultPage() {
       {result.development_stub && <DevBanner />}
       <p className="eyebrow">Listing assessment</p>
       <h1 className="page-title">{result.title}</h1>
-      <p className="page-lead">Checked {new Date(result.created_at).toLocaleString()}.</p>
+      <p className="page-lead">Checked {formatDateTime(result.created_at)}.</p>
 
       <ScoreRegion
         id={result.assessment_id}
