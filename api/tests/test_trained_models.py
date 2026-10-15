@@ -17,9 +17,34 @@ from api.main import create_app
 from api.models.domain import AssessmentRecord, SellerInput
 from api.schemas import RiskBand, SignalName
 from api.services.pipelines import SignalOutput
-from api.services.trained_models import TrainedModels, missing_artifacts, verify_train_split
+from api.services.trained_models import (
+    TrainedModels,
+    _shown_value,
+    missing_artifacts,
+    verify_train_split,
+)
 from api.settings import Settings
 from api.tests.test_api import submit
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "shown"),
+    [
+        ("seller_rating", 4.8, " (4.8)"),
+        ("review_count", 1_500_000, " (1,500,000)"),
+        ("account_age_days", 1, " (1 day)"),
+        ("account_age_days", 400.0, " (400 days)"),
+        ("price", 1250.5, " (RM 1,250.50)"),
+        ("price", 300, " (RM 300)"),
+        ("review_count", None, ""),
+        ("review_count", float("nan"), ""),
+    ],
+)
+def test_reasons_state_the_listings_own_value_in_plain_numbers(
+    key: str, value: Any, shown: str
+) -> None:
+    """A reason quotes the value as a person writes it: no exponent, "1 day", thousands commas."""
+    assert _shown_value(key, value) == shown
 
 
 def test_trained_mode_rejects_missing_saved_models(tmp_path: Path) -> None:

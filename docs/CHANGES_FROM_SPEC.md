@@ -11,5 +11,9 @@ Written 2026-10-15. The documents in `docs/spec/` are the supplied pre-implement
 | Behavioural signal | Plain seller-risk explanation | The card states that the model learned "has a full seller profile", which in the annotated data mostly separates the two marketplaces, so a good profile does not mean a safe listing. |
 | Language gate | Chinese-dominant text refused | Text mostly in any non-Latin script (Chinese, Tamil, Thai, Arabic and similar) is refused. |
 | Latency evidence | Harness in `ml/` | `scripts/time_checks.py` times real checks over HTTP. The server warms its models at start-up so the first check is not slow. |
+| Typeface | Inter, named in the styles but never loaded | Public Sans, bundled with the website and the extension (Chrome blocks remote fonts in an extension). The design direction and the choice are recorded in `.impeccable.md`. |
+| Reasons | A general sentence per feature | Each reason states the listing's own value ("The seller rating (4.8) raised this signal's risk estimate"), with plain numbers ("1 day", "1,500,000"). |
+| Seller page text | Not specified | The number patterns in `extension/lib/capture/seller.ts` run in linear time. A page of 100,000 digits used to freeze the panel for about 100 seconds; the slowest input now takes under 0.3 seconds, pinned by a test. |
+| Request time limit | Not specified | The API client ends a request that gets no answer (30 seconds, 120 for the photo upload) and treats it as "could not be reached". The panel tries a lost request up to three times, then shows a failure, so a hung server cannot leave it spinning. |
 
 Open items that are unchanged: the retention period (O-4), the ethics workflow (O-3), and the user study, which waits.

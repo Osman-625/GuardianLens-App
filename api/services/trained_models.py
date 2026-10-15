@@ -57,10 +57,12 @@ def _shown_value(key: str, value: Any) -> str:
         return ""
     if not math.isfinite(number):
         return ""
-    text = {
-        "price": f"RM {number:,.2f}".removesuffix(".00"),
-        "account_age_days": f"{number:.0f} days",
-    }.get(key, f"{number:g}")
+    # Whole numbers keep every digit ("1,500,000", not "1.5e+06"); ratios and ratings use "g".
+    text = f"{number:,.0f}" if number.is_integer() else f"{number:g}"
+    if key == "price":
+        text = f"RM {number:,.2f}".removesuffix(".00")
+    elif key == "account_age_days":
+        text = f"{text} day" if number == 1 else f"{text} days"
     return f" ({text})"
 
 

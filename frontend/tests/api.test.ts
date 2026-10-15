@@ -70,4 +70,12 @@ describe("apiFetch", () => {
     expect(init.credentials).toBe("include");
     expect(new Headers(init.headers).has("Content-Type")).toBe(false);
   });
+
+  // Without it a server that never answers leaves the page on "Loading" forever.
+  it("gives every request a time limit", async () => {
+    const fetchMock = answerWith(Response.json({}));
+    await apiFetch("/x");
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
 });

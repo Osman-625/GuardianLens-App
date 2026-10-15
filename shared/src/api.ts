@@ -54,6 +54,11 @@ export interface ClientOptions {
 // Header the API reads for the extension's session token.
 const SESSION_HEADER = "X-Session-Token";
 
+/** How long a request waits for the service to answer before it counts as unreachable. */
+export const REQUEST_TIMEOUT_MS = 30_000;
+/** The same for the photo upload, which is much larger than any other request. */
+export const UPLOAD_TIMEOUT_MS = 120_000;
+
 // Stand-in error for a request that never reached the service (offline, wrong address, refused).
 const NETWORK_ERROR: ApiError = {
   error: {
@@ -99,24 +104,36 @@ export function createClient(options: ClientOptions) {
   const doFetch: typeof fetch = options.fetchImpl ?? ((input, init) => fetch(input, init));
   const { transport } = options;
 
-  /** Sends one request with the session attached; turns a network failure into an API error. */
-  async function send(path: string, init: RequestInit = {}): Promise<Response> {
+  /**
+   * Sends one request with the session attached; turns a network failure, or no answer within
+   * `timeoutMs`, into an API error (status 0), so a hung server cannot leave a caller waiting.
+   */
+  async function send(
+    path: string,
+    init: RequestInit = {},
+    timeoutMs = REQUEST_TIMEOUT_MS,
+  ): Promise<Response> {
     const headers = new Headers(init.headers);
     // JSON bodies are strings; FormData sets its own multipart header, so it is left alone.
     if (typeof init.body === "string" && !headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
-    const request: RequestInit = { ...init, headers };
+    const controller = new AbortController();
+    const request: RequestInit = { ...init, headers, signal: controller.signal };
     if (transport.kind === "cookie") {
       request.credentials = "include";
     } else {
       const token = await transport.store.get();
       if (token) headers.set(SESSION_HEADER, token);
     }
+    // Stopped once the answer's headers arrive: the body is small and the server is alive by then.
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await doFetch(`${baseUrl}${path}`, request);
     } catch {
       throw new GuardianLensApiError(0, NETWORK_ERROR);
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -144,7 +161,9 @@ export function createClient(options: ClientOptions) {
     await ensureSession();
     // One try at the upload; it is called a second time only after a stale session is replaced.
     const attempt = async () =>
-      read<{ assessment_id: string }>(await send("/api/v1/assess", { method: "POST", body: form }));
+      read<{ assessment_id: string }>(
+        await send("/api/v1/assess", { method: "POST", body: form }, UPLOAD_TIMEOUT_MS),
+      );
     try {
       return await attempt();
     } catch (error) {

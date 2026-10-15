@@ -8,8 +8,15 @@
 //  - a header client mints its own session once, and recovers from a stale token by minting
 //    a new one and retrying the submission exactly once (backend restarts drop sessions);
 //  - every failure is turned into a GuardianLensApiError the UI can show.
-import { describe, expect, it } from "vitest";
-import { GuardianLensApiError, createClient, readApiError, type TokenStore } from "../src/api";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  GuardianLensApiError,
+  REQUEST_TIMEOUT_MS,
+  UPLOAD_TIMEOUT_MS,
+  createClient,
+  readApiError,
+  type TokenStore,
+} from "../src/api";
 
 /** One recorded request: the URL fetched and the options it was fetched with. */
 interface Call {
@@ -271,5 +278,59 @@ describe("readApiError", () => {
     expect(await readApiError(new Response(body, { status: 502 }))).toMatchObject({
       error: { code: "bad_response", field: null },
     });
+  });
+});
+
+// A server that accepts the connection and never answers must not leave the caller waiting: the
+// side panel would spin until its own give-up counter, which only advances while it is waiting.
+describe("request timeout", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Never answers, but ends when the client aborts it, like the real fetch.
+  const hungFetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("x", "AbortError")));
+    })) as typeof fetch;
+  const hungClient = () =>
+    createClient({
+      baseUrl: "http://api.test",
+      transport: { kind: "cookie" },
+      fetchImpl: hungFetch,
+    });
+
+  it("turns no answer into 'could not be reached'", async () => {
+    vi.useFakeTimers();
+    const outcome = hungClient()
+      .getStatus("a1")
+      .catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    expect(await outcome).toMatchObject({ status: 0, code: "network_unreachable" });
+  });
+
+  it("gives the photo upload longer than an ordinary request", async () => {
+    vi.useFakeTimers();
+    let settled = false;
+    const outcome = hungClient()
+      .submit(new FormData())
+      .catch((error: unknown) => error)
+      .finally(() => (settled = true));
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(UPLOAD_TIMEOUT_MS - REQUEST_TIMEOUT_MS);
+    expect(await outcome).toMatchObject({ status: 0 });
+  });
+
+  it("leaves no timer running once the answer arrives", async () => {
+    vi.useFakeTimers();
+    const { impl } = fakeFetch([() => json([])]);
+    const client = createClient({
+      baseUrl: "http://api.test",
+      transport: { kind: "cookie" },
+      fetchImpl: impl,
+    });
+    await client.getHistory();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

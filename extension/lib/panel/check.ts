@@ -10,9 +10,10 @@
 //     (no percentages and no fake progress);
 //   - polling stops when the run is dropped (the buyer cancels, or opens another listing) and the
 //     server is told to stop that check, so nobody is left with a check they never saw; it also
-//     gives up after GIVE_UP_AFTER_MS, so a stuck server can never leave the panel spinning;
-//   - a status request that never reached the server is tried again a few times, because the
-//     server keeps scoring and one dropped request must not end the check.
+//     gives up after GIVE_UP_AFTER_MS, so a stuck server can never leave the panel spinning (the
+//     API client also ends any single request that gets no answer, so no await here is endless);
+//   - a request that never reached the server, or got no answer in time, is tried again a few
+//     times, because the server keeps scoring and one dropped request must not end the check.
 import {
   GuardianLensApiError,
   type AssessmentResult,
@@ -96,7 +97,7 @@ export async function runCheck(draft: Draft, deps: CheckDeps): Promise<CheckOutc
     while (waited < GIVE_UP_AFTER_MS) {
       if (deps.isCancelled()) {
         // Dropped after the server accepted it: tell the server, or it finishes a check that
-        // nobody sees and files it in the history and the research export.
+        // nobody sees and files it in the buyer's history.
         void deps.client.cancel(accepted.assessment_id).catch(() => undefined);
         return { status: "cancelled" };
       }

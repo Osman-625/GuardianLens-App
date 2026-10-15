@@ -16,7 +16,7 @@ Stub scores are displayed with a permanent warning. They are not CLIP, SSCD, TF-
 - Development-only five-stage pipeline stubs with explicit missing-signal handling.
 - A timing script (`scripts/time_checks.py`) that measures real checks against the running API, for the NFR-02 evidence (10 seconds a check).
 - Draft consent, session, and questionnaire materials and a blank study-trial template. No generated labels, participants, or study rows are included.
-- Automated backend and ML contract tests, CI source, secret scanning, and prose punctuation checks.
+- Automated backend, shared-package, extension, website and browser tests, CI source, secret scanning, and prose punctuation checks.
 - The original eight specification documents under `docs/spec/`.
 
 ## Repository map
@@ -106,7 +106,7 @@ npm run build
 npm run test:e2e -w extension
 ```
 
-Last full run (2026-10-15): the Python suite passed with 181 tests, ruff, strict mypy, the secret scan and the prose punctuation check were clean, and the JavaScript checks passed (shared 74 tests, extension 355 tests with 2 real-page fixture files skipped until recorded pages are added, frontend 35 tests, lint, the Prettier format check, typecheck, `npm audit` with 0 vulnerabilities in the shipped dependencies, the production build, and 6 browser end-to-end tests). `pip-audit` was last run on 2026-10-10. The manual checks that need live marketplace pages and a real browser are listed in `docs/superpowers/audits/2026-10-manual-checks.md`.
+Last full run (2026-10-15): the Python suite passed with 189 tests, ruff, strict mypy, the secret scan and the prose punctuation check were clean, and the JavaScript checks passed (shared 79 tests, extension 357 tests with 2 real-page fixture files skipped until recorded pages are added, frontend 36 tests, lint, the Prettier format check, typecheck, `npm audit` with 0 vulnerabilities in the shipped dependencies, the production build, and 6 browser end-to-end tests). `pip-audit` was last run on 2026-10-10. The manual checks that need live marketplace pages and a real browser are listed in `docs/superpowers/audits/2026-10-manual-checks.md`.
 
 ## Data storage
 

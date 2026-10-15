@@ -6,8 +6,8 @@
 
 | Area | Result | Evidence |
 | --- | --- | --- |
-| API tests | 181 passed | `pytest -q` |
-| Website, extension and shared package tests | 35, 355 and 74 passed | `npm test` |
+| API tests | 189 passed | `pytest -q` |
+| Website, extension and shared package tests | 36, 357 and 79 passed | `npm test` |
 | Lint, format, typecheck, secret scan, prose check | Clean | CI commands in the README |
 | Real end-to-end run | Website to API to trained models and back, with results kept across a server restart | Run by hand on 2026-10-15 |
 | Check speed | Server time 0.5 to 7.6 s across 16 checks, worst end to end 9.7 s (budget 10 s) | `scripts/time_checks.py` |

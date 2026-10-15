@@ -341,3 +341,36 @@ describe("live seller pages", () => {
     });
   });
 });
+
+// A seller page is untrusted text. These inputs used to make the number patterns retry from every
+// digit (100,000 digits followed by " y joined" took about 100 s), freezing the side panel.
+describe("long runs of digits", () => {
+  const LIMIT_MS = 1500;
+  const timed = (fn: () => void): number => {
+    const start = performance.now();
+    fn();
+    return performance.now() - start;
+  };
+
+  it("are read in linear time", () => {
+    const digits = "0".repeat(50_000);
+    const commas = "1,".repeat(25_000);
+    const page = (text: string) => parseHtml(`<body>${text}</body>`);
+    const spent = [
+      timed(() => parseAccountAgeDays(`${digits} y joined`, NOW)),
+      timed(() => parseAccountAgeDays(`${commas} on Carousell`, NOW)),
+      timed(() => parseReviewStats(`${digits} x`)),
+      timed(() => parseReviewStats(`${commas} x`)),
+      timed(() => parseSellerPage(page(digits), "mudah", BASE, NOW)),
+      timed(() => parseSellerPage(page(commas), "carousell", BASE, NOW)),
+    ];
+    expect(Math.max(...spent)).toBeLessThan(LIMIT_MS);
+  });
+
+  it("leave ordinary wording readable", () => {
+    expect(parseAccountAgeDays(`${"7".repeat(20)} 5 years on Carousell`, NOW)).toBe(1825);
+    expect(
+      parseReviewStats("Profile details 5.0 66 reviews 5 years on Carousell").reviewCount,
+    ).toBe(66);
+  });
+});

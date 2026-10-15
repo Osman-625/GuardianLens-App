@@ -52,8 +52,10 @@ const AGE_ANCHOR =
 // The wording of Carousell's seller card, seen on real saved pages (2026-09): "Profile details
 // 4.7 66 reviews 5 years on Carousell" and "N/A No review yet 2 months on Carousell". The duration
 // comes BEFORE "on Carousell", so the anchor words above never see it.
+// `(?<![\d,])` and `\d{1,3}` keep the match linear: without them a page full of digits made the
+// engine retry from every digit (100,000 digits took ~100 s in the stress test).
 const DURATION_ON_SITE =
-  /(?:(\d+)\s*(?:years?|yrs?))?\s*(?:(\d+)\s*(?:months?|mths?))?\s+on\s+(?:carousell|mudah)\b/i;
+  /(?<![\d,])(?:(\d{1,3})\s*(?:years?|yrs?))?\s*(?:(\d{1,3})\s*(?:months?|mths?))?\s+on\s+(?:carousell|mudah)\b/i;
 
 // Carousell's profile header (seen 2026-10): "5.0 52 reviews 10m 22d Joined". The abbreviated
 // duration (y, m, d) comes BEFORE the word "Joined", and the text after it is the seller's own bio.
@@ -177,7 +179,7 @@ export function parseReviewStats(text: string): {
     };
 
   const noReviews = /\bno\s+reviews?(?:\s+yet)?\b/i.test(text);
-  const counted = /(\d[\d,]*)\s+reviews?\b/i.exec(text);
+  const counted = /(?<![\d,])(\d[\d,]*)\s+reviews?\b/i.exec(text);
   const reviewCount = counted ? toInt(counted[1]) : noReviews ? 0 : null;
 
   const labelled = /rating[:\s]+(\d(?:\.\d{1,2})?)/i.exec(text);
@@ -248,7 +250,7 @@ function statedAvailableAds(text: string): number | null {
   // `\s*` (not `\s+`) and `(?![a-z])` (not `\b`): in a real browser the number and the label are
   // separate blocks with a line break between them, but text read without layout joins them
   // ("3AVAILABLE ADS32SOLD"), where a word boundary would not fall between "ADS" and "32".
-  return toInt(/(\d[\d,]*)\s*available\s+ads?(?![a-z])/i.exec(text)?.[1]);
+  return toInt(/(?<![\d,])(\d[\d,]*)\s*available\s+ads?(?![a-z])/i.exec(text)?.[1]);
 }
 
 /**
