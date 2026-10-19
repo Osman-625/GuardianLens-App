@@ -17,15 +17,24 @@ import { IMAGE_HOST_PATTERNS, PAGE_HOST_PATTERNS } from "./lib/hosts";
 // rebuild, not a code change.
 const apiOrigin = new URL(process.env.WXT_API_BASE_URL ?? "http://localhost:8000").origin;
 
+// PNG exports of the website's navy eye tile, without the wordmark.
+const icons = {
+  16: "icon/16.png",
+  32: "icon/32.png",
+  48: "icon/48.png",
+  128: "icon/128.png",
+};
+
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "GuardianLens",
+    icons,
     description: "Check a Mudah.my or Carousell listing for warning signs before you pay.",
     permissions: ["activeTab", "scripting", "storage", "sidePanel"],
     host_permissions: [`${apiOrigin}/*`, ...IMAGE_HOST_PATTERNS],
     optional_host_permissions: PAGE_HOST_PATTERNS,
     // An action with no popup: clicking the icon fires action.onClicked (entrypoints/background.ts).
-    action: { default_title: "Check this listing with GuardianLens" },
+    action: { default_title: "Check this listing with GuardianLens", default_icon: icons },
   },
 });

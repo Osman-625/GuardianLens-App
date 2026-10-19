@@ -38,6 +38,8 @@ guardianlens/
 
 Prerequisites: Conda (Anaconda or Miniconda), Node.js 22 or newer, npm, and Git. The conda environment installs Python 3.13 for you (`pyproject.toml` supports 3.12 and 3.13, not 3.14).
 
+### First-time setup
+
 ```powershell
 cd GuardianLens_codebase
 conda env create -f environment.yml
@@ -48,6 +50,22 @@ powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
 ```
 
 `environment.yml` installs the API, the saved-model serving packages (scikit-learn, XGBoost, torch, transformers), and the test tools. `npm install` at the repository root installs all three JavaScript packages (`shared`, `extension`, `frontend`) as npm workspaces. To update the environment after `pyproject.toml` changes: `conda env update -f environment.yml --prune`.
+
+### Run after setup
+
+Open Anaconda Prompt (or CMD with Conda available) and run:
+
+```cmd
+cd /d "C:\Users\cusma\OneDrive\Desktop\FYP Project\04_System_Workspaces\GuardianLens_codebase"
+conda activate Guardianlens_venv
+powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
+```
+
+Leave this terminal open. Wait for both `GuardianLens API ready` and `GuardianLens web ready`, then open [the website](http://localhost:3000). You can use the browser extension once both servers are ready.
+
+Trained models can take a minute to load. Startup output is saved in `.tmp/dev/api.stderr.log`, `.tmp/dev/api.stdout.log`, and the matching `web` logs. If startup fails, the launcher prints the end of the error log. Press Ctrl+C to stop both servers before launching again.
+
+API auto-reload is off by default to avoid repeated model loading when a synced folder reports file changes. Restart the launcher after changing Python code, or opt in with `powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -ReloadApi` (which watches only `api/`).
 
 Open:
 
@@ -126,15 +144,3 @@ The final active model bundle must contain:
 - Dataset split hash, seeds, dependency lock hash, component versions, and artefact SHA-256 values.
 
 The API must refuse to render a real band when an active bundle lacks confirmed boundaries. The stub's placeholder boundaries (`STUB_LOW_MAX` and `STUB_MODERATE_MAX` in `api/services/orchestrator.py`) exist only to exercise the interface.
-
-## Open items that still block later gates
-
-- O-1: second annotator.
-- O-2: official FYP2 dates.
-- O-3: INTI ethics or approval requirement.
-- O-4: approved retention period.
-- O-5: licences for the exact pretrained weights.
-- O-7: validation-derived risk-band boundaries.
-- O-8: written record of supervisor sign-off on Chapter 3 sections 3.3.7 to 3.3.9.
-
-See `docs/FIRST_DRAFT_STATUS.md` and `docs/plans/phase-0-first-draft.md` for the exact completion boundary.
