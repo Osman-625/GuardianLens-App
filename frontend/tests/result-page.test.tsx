@@ -16,7 +16,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 const result = {
   assessment_id: "a1",
   title: "Used laptop",
-  score: 28,
+  score: 72,
   band: "moderate",
   signal_cards: [],
   missing_data_notices: [],

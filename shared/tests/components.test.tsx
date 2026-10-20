@@ -78,7 +78,7 @@ describe("ScoreRegion", () => {
   it("labels the region with the score and band and contains the disclaimer", () => {
     render(<ScoreRegion score={62} band="moderate" disclaimer="Decision support only." />);
     const region = screen.getByRole("region", {
-      name: "Risk score 62 out of 100, moderate",
+      name: "Score 62 out of 100, moderate risk",
     });
     expect(within(region).getByText("62")).toBeInTheDocument();
     // Common-region rule: the caveat is part of the verdict, not detached small print.
@@ -89,7 +89,7 @@ describe("ScoreRegion", () => {
     render(<ScoreRegion score={61.6} band="moderate" disclaimer="x" />);
     expect(
       screen.getByRole("region", {
-        name: "Risk score 62 out of 100, moderate",
+        name: "Score 62 out of 100, moderate risk",
       }),
     ).toBeInTheDocument();
   });

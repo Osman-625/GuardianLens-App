@@ -29,7 +29,7 @@ test("capture to result to website handoff", async () => {
   await page.getByRole("button", { name: "Check listing" }).click();
 
   const region = page.getByRole("region", {
-    name: "Risk score 42 out of 100, moderate",
+    name: "Score 58 out of 100, moderate risk",
   });
   await expect(region).toBeVisible();
   await expect(region.getByText(/Decision support only/)).toBeVisible();

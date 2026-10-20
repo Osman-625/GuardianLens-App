@@ -71,7 +71,7 @@ test("the result view has one steady rhythm between its blocks", async () => {
   const { context, page } = await openPanel();
   await seedCapture(page, listingJob());
   await page.getByRole("button", { name: "Check listing" }).click();
-  await page.getByRole("region", { name: /Risk score/ }).waitFor();
+  await page.getByRole("region", { name: /^Score \d+ out of 100/ }).waitFor();
   const aboveCards = await gapBetween(page, ".score-region", ".signal-grid");
   const belowCards = await page.evaluate(() => {
     const grid = document.querySelector(".signal-grid")?.getBoundingClientRect();

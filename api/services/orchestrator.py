@@ -55,17 +55,17 @@ def _to_card(output: SignalOutput) -> SignalCard:
     )
 
 
-# The highest stub score of the Low band and of the Moderate band. Placeholders that only exercise
-# the interface.
+# The highest stub risk (0 to 100, higher is riskier) of the Low band and of the Moderate band.
+# Placeholders that only exercise the interface. The score shown to the buyer is 100 minus the risk.
 STUB_LOW_MAX = 33
 STUB_MODERATE_MAX = 66
 
 
-def _stub_band(score: int) -> RiskBand:
-    """Maps a stub score to a band with the fixed development boundaries above."""
-    if score <= STUB_LOW_MAX:
+def _stub_band(risk: int) -> RiskBand:
+    """Maps a stub risk to a band with the fixed development boundaries above."""
+    if risk <= STUB_LOW_MAX:
         return RiskBand.LOW
-    if score <= STUB_MODERATE_MAX:
+    if risk <= STUB_MODERATE_MAX:
         return RiskBand.MODERATE
     return RiskBand.HIGH
 
@@ -143,9 +143,9 @@ def run_development_assessment(
         if models:
             score, band = models.fuse([visual, textual, behavioural])
         else:
-            fused = sum(available) / len(available)
-            score = round(fused * 100)
-            band = _stub_band(score)
+            risk = round(sum(available) / len(available) * 100)
+            score = 100 - risk
+            band = _stub_band(risk)
 
         _begin_stage(PipelineStage.EXPLANATION, assessment, repository)
         outputs = (visual, textual, behavioural)

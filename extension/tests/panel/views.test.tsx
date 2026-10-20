@@ -382,7 +382,7 @@ describe("ResultView", () => {
   it("keeps the disclaimer inside the score region and shows the stub warning", () => {
     renderResult();
     const region = screen.getByRole("region", {
-      name: "Risk score 42 out of 100, moderate",
+      name: "Score 58 out of 100, moderate risk",
     });
     expect(
       within(region).getByText(

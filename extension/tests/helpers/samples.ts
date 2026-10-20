@@ -64,7 +64,7 @@ export function sampleResult(overrides: Partial<AssessmentResult> = {}): Assessm
   return {
     assessment_id: "a1",
     title: "Used laptop in good condition",
-    score: 42,
+    score: 58,
     band: "moderate",
     signal_cards: [
       card("visual", "No strong warning signs in the photos."),

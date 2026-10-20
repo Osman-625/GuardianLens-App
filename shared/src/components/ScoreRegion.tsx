@@ -4,6 +4,7 @@
 
 import { useLayoutEffect, useState } from "react";
 import { BandChip } from "./BandChip";
+import { SCORE_HINT } from "../copy";
 import type { RiskBand } from "../types";
 
 /** Results whose count-up has already played in this page's lifetime (no replay on revisit). */
@@ -81,7 +82,7 @@ function ScoreDial({ score, band, revealKey }: ScoreDialProps) {
 
 /** Props of the score region: the numeric score, its band, and the disclaimer shown with it. */
 export interface ScoreRegionProps {
-  /** The risk score. Rounded to an integer for display; decimals are never shown. */
+  /** The score, 0 to 100, where 100 is the lowest estimated risk. Rounded for display; decimals are never shown. */
   score: number;
   band: RiskBand;
   /** Must be shown wherever a score is shown, so it is a required part of this component. */
@@ -94,11 +95,12 @@ export interface ScoreRegionProps {
 export function ScoreRegion({ score, band, disclaimer, id }: ScoreRegionProps) {
   const shown = Math.round(score);
   return (
-    <section className="score-region" aria-label={`Risk score ${shown} out of 100, ${band}`}>
+    <section className="score-region" aria-label={`Score ${shown} out of 100, ${band} risk`}>
       <div className="score-main">
         <ScoreDial score={shown} band={band} revealKey={id ?? `${shown}-${band}`} />
         <BandChip band={band} />
       </div>
+      <p className="score-hint">{SCORE_HINT}</p>
       <p className="disclaimer">{disclaimer}</p>
     </section>
   );

@@ -34,6 +34,9 @@ export const BAND_COPY: Record<RiskBand, { icon: IconName; meaning: string }> = 
   },
 };
 
+/** Shown under the score so the direction is never guessed: a higher score means fewer warning signs. */
+export const SCORE_HINT = "Higher is better. 100 means the fewest warning signs found.";
+
 /** Display names of the three signals. */
 export const SIGNAL_NAMES: Record<SignalName, string> = {
   visual: "Visual",

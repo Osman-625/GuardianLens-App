@@ -67,7 +67,7 @@ export interface SignalCard {
 export interface AssessmentResult {
   assessment_id: string;
   title: string;
-  /** Integer from 0 to 100. Never shown with decimals. */
+  /** Integer from 0 to 100; 100 is the lowest estimated risk. Never shown with decimals. */
   score: number;
   band: RiskBand;
   signal_cards: SignalCard[];

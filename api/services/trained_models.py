@@ -363,8 +363,8 @@ class TrainedModels:
         """Combines the three signals with the saved fusion model.
 
         An unavailable signal is passed on as missing. The band is chosen from the unrounded
-        probability using the run's saved boundaries; the score is that probability as a
-        percentage, rounded.
+        probability using the run's saved boundaries. The score is 100 minus that probability as a
+        rounded percentage, so 100 is the lowest estimated risk and 0 the highest.
         """
         import numpy as np
 
@@ -379,7 +379,7 @@ class TrainedModels:
             if p >= self.bands["low_moderate"]
             else RiskBand.LOW
         )
-        return round(p * 100), band
+        return 100 - round(p * 100), band
 
 
 def verify_train_split(workspace: Path, meta: dict[str, Any]) -> Path:

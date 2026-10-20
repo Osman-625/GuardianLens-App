@@ -229,6 +229,6 @@ def test_bands_use_unrounded_probability() -> None:
         SignalOutput(signal=name, probability=0.2, available=True, status_word="", summary="")
         for name in SignalName
     ]
-    assert runtime.fuse(outputs) == (16, RiskBand.LOW)
+    assert runtime.fuse(outputs) == (84, RiskBand.LOW)
     runtime.fusion["fusions"]["V+T+B"].predict = lambda _: np.array([0.164])
-    assert runtime.fuse(outputs) == (16, RiskBand.MODERATE)
+    assert runtime.fuse(outputs) == (84, RiskBand.MODERATE)

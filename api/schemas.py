@@ -122,7 +122,10 @@ class SignalCard(BaseModel):
 
 
 class AssessmentResultResponse(BaseModel):
-    """A finished assessment: score, band, signal cards, notices, checks, and the disclaimer."""
+    """A finished assessment: score, band, signal cards, notices, checks, and the disclaimer.
+
+    `score` is 100 minus the estimated risk percentage: 100 is the lowest estimated risk.
+    """
 
     assessment_id: UUID
     title: str

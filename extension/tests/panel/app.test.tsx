@@ -155,7 +155,7 @@ describe("PanelApp", () => {
     await userEvent.dblClick(screen.getByRole("button", { name: "Check listing" }));
 
     const region = await screen.findByRole("region", {
-      name: "Risk score 42 out of 100, moderate",
+      name: "Score 58 out of 100, moderate risk",
     });
     expect(within(region).getByText(/Decision support only/)).toBeInTheDocument();
     expect(client.submit).toHaveBeenCalledTimes(1);
@@ -286,11 +286,13 @@ describe("PanelApp", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Check listing" }));
 
     // The second check finishes even though the first is still waiting on the server.
-    expect(await screen.findByRole("region", { name: /Risk score/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("region", { name: /^Score \d+ out of 100/ }),
+    ).toBeInTheDocument();
     expect(client.submit).toHaveBeenCalledTimes(2);
     // The first check answering late changes nothing.
     await act(async () => releaseFirst({ status: "processing", stage: "visual", message: null }));
-    expect(screen.getByRole("region", { name: /Risk score/ })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /^Score \d+ out of 100/ })).toBeInTheDocument();
   });
 
   it("a capture that arrives during a check replaces it instead of mixing two listings", async () => {
@@ -319,6 +321,6 @@ describe("PanelApp", () => {
     // The first check completes late. Its result must not replace the second listing's Review.
     await act(async () => releaseFirst({ status: "complete", stage: null, message: null }));
     expect(screen.getByLabelText("Title")).toHaveValue("Second listing");
-    expect(screen.queryByRole("region", { name: /Risk score/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: /^Score \d+ out of 100/ })).not.toBeInTheDocument();
   });
 });
