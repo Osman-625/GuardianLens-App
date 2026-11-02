@@ -18,11 +18,11 @@ export type MappedError =
 
 /** Shown when none of the selected photos could be prepared. */
 export const NO_PHOTOS_MESSAGE =
-  "None of the selected photos could be read. Remove them and use the website form instead.";
+  "None of the selected photos could be read. Use the website form to upload photos yourself.";
 
 /** The calm generic failure message. The draft is kept, so the buyer can simply retry. */
 export const FAILED_MESSAGE =
-  "The check could not be completed. Your details are saved; try again.";
+  "Something stopped the check. Your details are saved, so you can try again.";
 
 // The API names form fields in snake_case; the draft uses camelCase.
 const FIELD_KEYS: Record<string, keyof DraftErrors> = {

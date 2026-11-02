@@ -1,7 +1,7 @@
 // Shown when the panel has nothing to review: before the first click, on pages that are not a
 // listing, on blocked pages, and after a failed capture. Each reason gets one plain sentence
 // that says what to do next, and two ways out (the website form and the session history).
-import { Icon } from "@guardianlens/shared";
+import { LooksAt } from "@guardianlens/shared";
 import type { PageState } from "@/lib/capture/types";
 import type { IdleReason } from "@/lib/panel/reducer";
 
@@ -45,15 +45,13 @@ export function IdleView({ reason, pageState, onOpenSite, onCapture }: IdleViewP
       : MESSAGES[reason];
   return (
     <section className="panel-section" aria-live="polite">
-      <span className="panel-hero-icon" aria-hidden="true">
-        <Icon name="eye" />
-      </span>
       {/* Every panel view has one level-one heading, so screen readers can orient on it. */}
       <h1 className="panel-title">Check a listing</h1>
       <p>{message}</p>
       <button type="button" className="button button-primary" onClick={onCapture}>
         Capture this page
       </button>
+      <p className="helper">It reads a page only when you ask it to.</p>
       <div className="panel-links">
         <button type="button" className="button button-text" onClick={() => onOpenSite("/assess")}>
           Use the website form
@@ -62,6 +60,12 @@ export function IdleView({ reason, pageState, onOpenSite, onCapture }: IdleViewP
           This session
         </button>
       </div>
+      <section className="panel-looks" aria-labelledby="panel-looks-heading">
+        <h2 id="panel-looks-heading" className="panel-subtitle">
+          What it looks at
+        </h2>
+        <LooksAt />
+      </section>
     </section>
   );
 }

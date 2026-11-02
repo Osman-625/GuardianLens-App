@@ -66,3 +66,7 @@ in the manual checks).
 | Paradox of the Active User | Panel review and result views | fail, fixed | Adding seller details (open the seller page and click the icon again) was only explained inside a collapsed group, so a buyer who skipped reading got a result with the behavioural signal unknown and no hint why. The seller group is now open by default with a prompt that says why the details matter and how to add them, and the result view says how to include them when the behavioural signal is unknown. The website form got the same open group and wording. Tests added first. |
 | Flow | Website handoff | waived | The handoff shows a browser confirmation dialog, which interrupts the task. Accepted: it is the security control for session fixation (see the security review) and appears only when following an extension link. |
 | Uniform Connectedness | n/a | not applicable | No connectors are used. |
+
+## Follow-up, 2026-11-02
+
+The final design pass changed the wording and the look of both surfaces; the findings above still hold. What moved: the "Seller information" summary is now "Seller details (recommended)" (still 44 px tall), the signal cards are called Photos, Wording and Seller and price and sit in one bordered group, the review form no longer repeats "Captured" or "Not found" beside every field, and the panel's start screen lists what the three checks look at. The extension was run against the trained API and the production website on real listings (`docs/evidence/2026-11-02-real-use-check.md`); the e2e layout tests (6) pass.

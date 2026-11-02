@@ -46,10 +46,7 @@ export function ResultView({
   return (
     <section className="panel-section">
       {result.development_stub && <DevBanner />}
-      <div>
-        <p className="eyebrow">Assessment complete</p>
-        <h1 className="panel-title">{result.title}</h1>
-      </div>
+      <h1 className="panel-title">{result.title}</h1>
       {notice && (
         <p className="notice" role="status">
           {notice}
@@ -79,8 +76,8 @@ export function ResultView({
             <p key={text}>{text}</p>
           ))}
           <p>
-            To include them, open the seller&apos;s page, click the GuardianLens icon there, then
-            press Check listing again.
+            To add them, open the seller&apos;s page, click the GuardianLens icon there, then press
+            Check listing again.
           </p>
         </section>
       ) : (

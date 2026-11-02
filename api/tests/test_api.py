@@ -81,7 +81,7 @@ def test_assessment_contract_end_to_end() -> None:
         assert payload["development_stub"] is True
         assert payload["model_bundle_label"] == "dev-stub-unvalidated"
         assert len(payload["signal_cards"]) == 3
-        assert "not produced by the trained" in payload["disclaimer"]
+        assert "Test mode" in payload["disclaimer"]
 
         history = client.get("/api/v1/session/history")
         assert history.status_code == 200
@@ -107,7 +107,7 @@ def test_missing_seller_fields_are_unknown() -> None:
         assert "unknown, not as suspicious" in behavioural["summary"]
         # One notice says the score left a signal out; it does not repeat the card's sentence.
         assert payload["missing_data_notices"] == [
-            "This score uses 2 of 3 signals. The rest are treated as unknown, not as suspicious."
+            "This result uses 2 of 3 checks. A check that could not run is unknown, not suspicious."
         ]
 
 

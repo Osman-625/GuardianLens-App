@@ -166,7 +166,7 @@ def test_saved_models_drive_api_result(
         for card in cards.values():
             for reason in card["reasons"]:
                 assert " linked with " not in reason["display_text"]
-                assert reason["display_text"].endswith("this signal's risk estimate.")
+                assert reason["display_text"].endswith("the risk estimate.")
         assert any("(" in reason["display_text"] for reason in cards["behavioural"]["reasons"])
         # The seller-profile limit is always stated with the behavioural signal.
         assert "does not mean a safe listing" in cards["behavioural"]["scope_note"]

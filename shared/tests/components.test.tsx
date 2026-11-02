@@ -99,7 +99,9 @@ describe("SignalCardView", () => {
   it("renders a link when given an href", () => {
     render(<SignalCardView card={card()} href="/assess/1/explanation#visual" />);
     expect(screen.getByRole("link")).toHaveAttribute("href", "/assess/1/explanation#visual");
-    expect(screen.getByText("No strong warning signs in the photos.")).toBeInTheDocument();
+    // The API's own summary names the model that ran, so a card with no reason says so plainly.
+    expect(screen.getByText("No detailed reason is available.")).toBeInTheDocument();
+    expect(screen.queryByText("No strong warning signs in the photos.")).not.toBeInTheDocument();
   });
 
   it("shows the strongest reason as the card's finding, in words", () => {
@@ -128,14 +130,14 @@ describe("SignalCardView", () => {
     expect(screen.queryByText("Analysed using a trained model.")).not.toBeInTheDocument();
   });
 
-  it("shows what the signal cannot show, under the finding", () => {
+  it("leaves the scope note to the explanation page, so the card stays short", () => {
     render(
       <SignalCardView
         card={card({ scope_note: "A good profile is not a safe listing." })}
         href="/x"
       />,
     );
-    expect(screen.getByText("A good profile is not a safe listing.")).toBeInTheDocument();
+    expect(screen.queryByText("A good profile is not a safe listing.")).not.toBeInTheDocument();
   });
 
   it("keeps a technical scope note off a signal that could not be computed", () => {
@@ -211,9 +213,9 @@ describe("StageList", () => {
 });
 
 describe("DevBanner", () => {
-  it("warns that scores are interface test data", () => {
+  it("warns that scores are placeholder test data", () => {
     render(<DevBanner />);
-    expect(screen.getByRole("status")).toHaveTextContent("Development stub");
+    expect(screen.getByRole("status")).toHaveTextContent("Test mode");
   });
 });
 

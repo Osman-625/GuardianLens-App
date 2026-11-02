@@ -124,7 +124,11 @@ npm run build
 npm run test:e2e -w extension
 ```
 
-Last full run (2026-10-15): the Python suite passed with 189 tests, ruff, strict mypy, the secret scan and the prose punctuation check were clean, and the JavaScript checks passed (shared 79 tests, extension 357 tests with 2 real-page fixture files skipped until recorded pages are added, frontend 36 tests, lint, the Prettier format check, typecheck, `npm audit` with 0 vulnerabilities in the shipped dependencies, the production build, and 6 browser end-to-end tests). `pip-audit` was last run on 2026-10-10. The manual checks that need live marketplace pages and a real browser are listed in `docs/superpowers/audits/2026-10-manual-checks.md`.
+Last full run (2026-11-02): the Python suite passed with 189 tests, ruff, strict mypy, the secret scan and the prose punctuation check were clean, and the JavaScript checks passed (shared 79 tests, extension 357 tests with 2 real-page fixture files skipped until recorded pages are added, frontend 37 tests, lint, the Prettier format check, typecheck, `npm audit --omit=dev` with 0 vulnerabilities in the shipped dependencies on Next.js 16.4.3, the production build, and 6 browser end-to-end tests). The same day the built extension, the trained models and the production website were run together on six real listings from the validation split: see [the real-use check](docs/evidence/2026-11-02-real-use-check.md). `pip-audit` was last run on 2026-10-10. The manual checks that need live marketplace pages and a real browser are listed in `docs/superpowers/audits/2026-10-manual-checks.md`.
+
+## What the buyer sees
+
+The interface is described in `.impeccable.md` and `docs/spec/04_Design_Brief_UI_UX.md`; the places where it differs from the specification are in `docs/CHANGES_FROM_SPEC.md`. Two choices matter when reading the code. The three checks are called Photos, Wording and Seller and price on screen (the report calls them visual, textual and behavioural); the names are in `shared/src/copy.ts`. Buyer-facing text never names a model, a bundle or a timing: the API still sends them, and `SHOW_MODEL_DETAILS` in `shared/src/copy.ts` (off) shows them again.
 
 ## Data storage
 

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { SLOW_WAIT_COPY, StageList, type PipelineStage } from "@guardianlens/shared";
 import { apiFetch, GuardianLensApiError } from "@/lib/api";
+import { DRAFT_KEY } from "@/lib/draft";
 
 // How many times in a row a status request may never reach the server before the page gives up.
 // The check keeps running on the server, so one dropped request (a Wi-Fi blip) must not end it.
@@ -42,6 +43,8 @@ export default function ProcessingPage() {
         lostRequests = 0;
         setStage(result.stage);
         if (result.status === "complete") {
+          // A finished check no longer needs its draft; keeping it would prefill the next listing.
+          window.sessionStorage.removeItem(DRAFT_KEY);
           router.replace(`/assess/${params.id}`);
           return;
         }
@@ -59,7 +62,7 @@ export default function ProcessingPage() {
           nextPoll = window.setTimeout(poll, 900);
           return;
         }
-        setFailure("The processing status could not be loaded. Your form draft is still saved.");
+        setFailure("We could not get the status of this check. Your form is still saved.");
       }
     }
 
@@ -85,7 +88,6 @@ export default function ProcessingPage() {
   return (
     <main className="page">
       <section className="card processing-card" aria-live="polite">
-        <p className="eyebrow">Assessment in progress</p>
         <h1 className="page-title">Checking the listing</h1>
         {failure ? (
           <>

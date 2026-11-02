@@ -4,13 +4,40 @@
 // Category is FREE TEXT: the 12 categories the models were trained on are only suggestions.
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, GuardianLensApiError } from "@/lib/api";
-import { CategoryField, LIMITS, RETENTION_NOTICE } from "@guardianlens/shared";
+import { DRAFT_KEY } from "@/lib/draft";
+import { CategoryField, Icon, LIMITS, RETENTION_NOTICE } from "@guardianlens/shared";
 
 // The most photos one check can include (the API setting GUARDIANLENS_MAX_IMAGES).
 const MAX_PHOTOS = LIMITS.photos;
+
+// The photo types the API accepts, so a dropped file of any other type can be refused up front.
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+/** "a photo", "a photo and a title", "a photo, a title and a price". */
+function joinList(items: string[]): string {
+  return items.length < 2
+    ? items.join("")
+    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/** A small preview of a chosen photo, so the buyer can see which file is which. */
+function Thumb({ file }: { file: File }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    // Not every environment can make an object URL (the jsdom test one cannot): no preview then.
+    if (typeof URL.createObjectURL !== "function") return;
+    const url = URL.createObjectURL(file);
+    // The URL only exists after render, so it is set here and released when the row goes away.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSrc(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  // eslint-disable-next-line @next/next/no-img-element
+  return src ? <img className="file-thumb" src={src} alt="" /> : <span className="file-thumb" />;
+}
 
 // The seller fields have no message of their own beside them, so their errors are shown next to
 // the submit button, led by the field's name.
@@ -65,24 +92,26 @@ export default function AssessPage() {
     field: string | null;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // True while a file is being dragged over the photo box, so the box can say it will take it.
+  const [dragging, setDragging] = useState(false);
 
   // On first render, bring back the draft saved in this tab's session storage (if it is readable).
   useEffect(() => {
-    const stored = window.sessionStorage.getItem("guardianlens-draft");
+    const stored = window.sessionStorage.getItem(DRAFT_KEY);
     if (stored) {
       try {
         // Restoring a user-authored session draft is intentional here.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setDraft({ ...EMPTY_DRAFT, ...(JSON.parse(stored) as Partial<Draft>) });
       } catch {
-        window.sessionStorage.removeItem("guardianlens-draft");
+        window.sessionStorage.removeItem(DRAFT_KEY);
       }
     }
   }, []);
 
   // Save the draft after every change, so a reload or a return from the processing page keeps it.
   useEffect(() => {
-    window.sessionStorage.setItem("guardianlens-draft", JSON.stringify(draft));
+    window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [draft]);
 
   // True when the required parts are present: a photo, a title, a description, a price, a category.
@@ -101,6 +130,15 @@ export default function AssessPage() {
   const titleOver = draft.title.trim().length > LIMITS.title;
   const descriptionOver = draft.description.trim().length > LIMITS.description;
   const canSubmit = mandatoryValid && !titleOver && !descriptionOver;
+  // What the button is waiting for, said in words next to it (Design Brief 3.4: a disabled button
+  // explains why).
+  const missing = [
+    !files.length && "a photo",
+    !draft.title.trim() && "a title",
+    !draft.description.trim() && "a description",
+    !draft.price.trim() && "a price",
+    !draft.category.trim() && "a category",
+  ].filter((item): item is string => Boolean(item));
 
   // Stores one edited field and clears the server error that was shown for that field.
   function update(field: keyof Draft, value: string) {
@@ -108,11 +146,13 @@ export default function AssessPage() {
     if (error?.field === field) setError(null);
   }
 
-  // Adds newly chosen photos to the list, keeping the first MAX_PHOTOS and saying so if some were left out.
+  // Adds newly chosen or dropped photos to the list, keeping the first MAX_PHOTOS and saying so if
+  // some were left out. Files that are not JPEG, PNG or WebP are refused here, not after the upload.
   function addFiles(selected: FileList | null) {
     if (!selected) return;
     setError(null);
-    const incoming = Array.from(selected);
+    const dropped = Array.from(selected);
+    const incoming = dropped.filter((file) => PHOTO_TYPES.includes(file.type));
     const combined = [...files, ...incoming].slice(0, MAX_PHOTOS);
     setFiles(combined);
     if (files.length + incoming.length > MAX_PHOTOS) {
@@ -120,7 +160,16 @@ export default function AssessPage() {
         message: `Add no more than ${MAX_PHOTOS} images.`,
         field: "images",
       });
+    } else if (incoming.length < dropped.length) {
+      setError({ message: "Only JPEG, PNG, or WebP photos can be added.", field: "images" });
     }
+  }
+
+  // Lets the whole photo box take a dropped file, not only the file button inside it.
+  function dropFiles(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setDragging(false);
+    addFiles(event.dataTransfer.files);
   }
 
   // Sends the form as multipart data; on success opens the processing page, on failure shows the
@@ -166,43 +215,64 @@ export default function AssessPage() {
 
   return (
     <main className="page">
-      <p className="eyebrow">Listing submission</p>
       <h1 className="page-title">Check a listing</h1>
       <p className="page-lead">
-        Copy the details exactly as they appear. Seller information is recommended, because the
-        behavioural signal needs it.
+        Copy the details exactly as they appear. Photos, title, description, price and category are
+        required.
       </p>
 
       <form className="form-stack" onSubmit={submit} noValidate>
         <section className="form-section">
           <h2>Listing photos</h2>
-          <div className="uploader">
-            <div>
-              <strong>Add 1 to {MAX_PHOTOS} photos</strong>
-              <p className="helper">JPEG, PNG, or WebP. Maximum 5 MB each.</p>
-              <input
-                aria-label="Choose listing photos"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={(event) => addFiles(event.target.files)}
-              />
-            </div>
-          </div>
+          {/* A label around the file input makes the whole box a tap target. The input itself is
+              visually hidden but stays focusable, so the box shows the focus ring (styles). */}
+          <label
+            className={dragging ? "uploader is-dragging" : "uploader"}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={dropFiles}
+          >
+            <input
+              className="visually-hidden"
+              aria-label="Choose listing photos"
+              type="file"
+              accept={PHOTO_TYPES.join(",")}
+              multiple
+              onChange={(event) => {
+                addFiles(event.target.files);
+                // Cleared so choosing the same photo again, after removing it, still registers.
+                event.target.value = "";
+              }}
+            />
+            <span className="uploader-icon">
+              <Icon name="upload" />
+            </span>
+            <strong>Add 1 to {MAX_PHOTOS} photos</strong>
+            <span className="helper">
+              Drop photos here, or tap to choose. JPEG, PNG, or WebP, up to 5 MB each.
+            </span>
+          </label>
           {files.length > 0 && (
             <ul className="file-list" aria-label="Selected files">
               {files.map((file, index) => (
-                <li className="file-row" key={`${file.name}-${file.lastModified}`}>
+                <li className="file-row" key={`${file.name}-${file.lastModified}-${index}`}>
+                  <Thumb file={file} />
                   <span className="file-name">
-                    {file.name} ({Math.ceil(file.size / 1024)} KB)
+                    <span className="file-title">{file.name}</span>
+                    <span className="file-size">{Math.ceil(file.size / 1024)} KB</span>
                   </span>
                   <button
                     className="button button-text"
                     type="button"
+                    aria-label={`Remove ${file.name}`}
                     onClick={() =>
                       setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))
                     }
                   >
+                    <Icon name="x" />
                     Remove
                   </button>
                 </li>
@@ -280,11 +350,10 @@ export default function AssessPage() {
           {/* Open by default: the behavioural signal is built from these details, so they are
               recommended. They still never block the check. */}
           <details className="optional" open>
-            <summary>Seller information (recommended)</summary>
+            <summary>Seller details (recommended)</summary>
             <p className="helper">
-              The behavioural signal uses these details, so fill in what you can see on the
-              seller&apos;s profile. Leave a field blank when it is not visible: missing details are
-              treated as unknown, never as suspicious.
+              Copy what the seller&apos;s profile shows. Leave the rest blank: missing details count
+              as unknown, not as suspicious.
             </p>
             <div className="field-row">
               <div className="field">
@@ -329,6 +398,13 @@ export default function AssessPage() {
 
         <div className="submit-bar">
           <p className="retention">{RETENTION_NOTICE}</p>
+          {!canSubmit && !error && (
+            <p className="helper submit-help" id="submit-help">
+              {missing.length > 0
+                ? `Still needed: ${joinList(missing)}.`
+                : "Shorten the text marked in red to continue."}
+            </p>
+          )}
           {error && !shownBesideField(error.field) && (
             <p className="error-text" role="alert">
               {error.field && SELLER_FIELD_LABELS[error.field]
@@ -340,8 +416,9 @@ export default function AssessPage() {
             className="button button-primary button-full"
             type="submit"
             disabled={!canSubmit || submitting}
+            aria-describedby={!canSubmit && !error ? "submit-help" : undefined}
           >
-            {submitting ? "Submitting…" : "Assess listing"}
+            {submitting ? "Checking…" : "Check listing"}
           </button>
         </div>
       </form>

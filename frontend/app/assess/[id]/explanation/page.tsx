@@ -10,17 +10,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BAND_ROUNDING_NOTE, DevBanner, sentenceCase } from "@guardianlens/shared";
+import {
+  BAND_ROUNDING_NOTE,
+  DevBanner,
+  Icon,
+  NO_REASON_COPY,
+  SHOW_MODEL_DETAILS,
+  SIGNAL_ICONS,
+  SIGNAL_NAMES,
+  sentenceCase,
+} from "@guardianlens/shared";
 import { apiFetch } from "@/lib/api";
 import type { AssessmentResult } from "@/lib/types";
 import { useSessionClaim } from "@/lib/useSessionClaim";
-
-// Section headings, one per signal.
-const labels = {
-  visual: "Visual signal",
-  textual: "Textual signal",
-  behavioural: "Behavioural signal",
-};
 
 /** Renders the explanation: one section per signal, then the manual checks and the disclaimer. */
 export default function ExplanationPage() {
@@ -34,7 +36,11 @@ export default function ExplanationPage() {
     if (!claimed) return;
     apiFetch<AssessmentResult>(`/api/v1/assess/${params.id}/result`)
       .then(setResult)
-      .catch(() => setLoadError("The explanation could not be loaded for this browser session."));
+      .catch(() =>
+        setLoadError(
+          "This explanation could not be loaded. It may belong to a different browser session.",
+        ),
+      );
   }, [params.id, claimed]);
 
   // Scroll to the section named in the address (for example #visual) once the content exists.
@@ -59,18 +65,24 @@ export default function ExplanationPage() {
 
   return (
     <main className="page">
+      <Link className="back-link" href={`/assess/${params.id}`}>
+        <Icon name="arrow-left" />
+        Back to result
+      </Link>
       {result.development_stub && <DevBanner />}
-      <p className="eyebrow">Explanation details</p>
-      <h1 className="page-title">Why this result was shown</h1>
-      <p className="page-lead">
-        Reasons are grouped by signal. Missing fields stay unknown. Model:{" "}
-        {result.model_bundle_label}, {result.total_latency_ms} ms.
-      </p>
+      <h1 className="page-title">Why you got this result</h1>
+      <p className="page-lead">Reasons are grouped by check. Anything missing counts as unknown.</p>
 
       {result.signal_cards.map((card) => (
         <section className="card explanation-section" id={card.signal} key={card.signal}>
-          <h2>{labels[card.signal]}</h2>
-          <p>
+          <h2>
+            <span className="signal-icon">
+              <Icon name={SIGNAL_ICONS[card.signal]} />
+            </span>
+            {SIGNAL_NAMES[card.signal]}
+          </h2>
+          {/* A check that ran names its model in the summary: kept in the page, hidden from buyers. */}
+          <p hidden={card.available && !SHOW_MODEL_DETAILS}>
             {!card.available && <strong>{sentenceCase(card.status_word)}. </strong>}
             {card.summary}
           </p>
@@ -82,6 +94,7 @@ export default function ExplanationPage() {
                   key={`${reason.feature_key}-${reason.rank}`}
                 >
                   <span className="reason-direction">
+                    <Icon name={reason.direction === "raises" ? "arrow-up" : "arrow-down"} />
                     {sentenceCase(`${reason.direction} risk`)}
                   </span>
                   {reason.display_text}
@@ -89,7 +102,7 @@ export default function ExplanationPage() {
               ))}
             </ul>
           ) : (
-            <p className="helper">No detailed reason is available for this signal.</p>
+            <p className="helper">{NO_REASON_COPY}</p>
           )}
           {card.scope_note && <p className="scope-note">{card.scope_note}</p>}
         </section>
@@ -97,7 +110,7 @@ export default function ExplanationPage() {
 
       {/* Same card spacing as the signal sections above, so "Back to result" does not touch it. */}
       <section className="card explanation-section">
-        <h2>Manual checks</h2>
+        <h2>Before you pay</h2>
         <ol className="check-list">
           {result.suggested_checks.map((check) => (
             <li key={check}>{check}</li>
@@ -107,9 +120,16 @@ export default function ExplanationPage() {
         <p className="helper">{BAND_ROUNDING_NOTE}</p>
       </section>
 
-      <Link className="button button-secondary button-full" href={`/assess/${params.id}`}>
-        Back to result
-      </Link>
+      <div className="action-row">
+        <Link className="button button-secondary" href={`/assess/${params.id}`}>
+          <Icon name="arrow-left" />
+          Back to result
+        </Link>
+      </div>
+      {/* Model name and timing: kept for the researcher, hidden from buyers. */}
+      <p className="footer-note" hidden={!SHOW_MODEL_DETAILS}>
+        Model {result.model_bundle_label} · {result.total_latency_ms} ms
+      </p>
     </main>
   );
 }

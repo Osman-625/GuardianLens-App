@@ -23,7 +23,11 @@ export type IconName =
   | "arrow-right"
   | "arrow-left"
   | "info"
-  | "lock";
+  | "lock"
+  | "upload"
+  | "x"
+  | "arrow-up"
+  | "arrow-down";
 
 // The drawing of each icon on a 24 x 24 grid. Small filled circles are the dots of "!" and "?".
 const SHAPES: Record<IconName, ReactElement> = {
@@ -99,6 +103,15 @@ const SHAPES: Record<IconName, ReactElement> = {
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </>
   ),
+  upload: (
+    <>
+      <path d="M12 15V4M7.5 8.5L12 4l4.5 4.5" />
+      <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+    </>
+  ),
+  x: <path d="M6 6l12 12M18 6L6 18" />,
+  "arrow-up": <path d="M12 19V5M6 11l6-6 6 6" />,
+  "arrow-down": <path d="M12 5v14M6 13l6 6 6-6" />,
 };
 
 /** Props of an icon: which drawing to show, and optional extra class names. */

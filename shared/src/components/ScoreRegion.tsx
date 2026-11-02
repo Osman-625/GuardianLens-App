@@ -98,9 +98,11 @@ export function ScoreRegion({ score, band, disclaimer, id }: ScoreRegionProps) {
     <section className="score-region" aria-label={`Score ${shown} out of 100, ${band} risk`}>
       <div className="score-main">
         <ScoreDial score={shown} band={band} revealKey={id ?? `${shown}-${band}`} />
-        <BandChip band={band} />
+        <div className="score-side">
+          <BandChip band={band} />
+          <p className="score-hint">{SCORE_HINT}</p>
+        </div>
       </div>
-      <p className="score-hint">{SCORE_HINT}</p>
       <p className="disclaimer">{disclaimer}</p>
     </section>
   );

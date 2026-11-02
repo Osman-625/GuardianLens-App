@@ -94,7 +94,7 @@ describe("IdleView", () => {
 describe("ReviewView", () => {
   it("says the data was captured when the buyer clicked, and names the marketplace", () => {
     renderReview();
-    expect(screen.getByText("Captured from this page when you clicked.")).toBeInTheDocument();
+    expect(screen.getByText(/Read from this page/)).toBeInTheDocument();
     expect(screen.getByText("Carousell")).toBeInTheDocument();
   });
 
@@ -127,7 +127,8 @@ describe("ReviewView", () => {
       sampleListing({ price: { status: "not_found", value: null } }),
     );
     renderReview({}, editField(missingPrice, "title", "My own title"));
-    expect(within(fieldOf("Description")).getByText("Captured")).toBeInTheDocument();
+    // A captured value needs no line of its own: the banner already says the page was read.
+    expect(within(fieldOf("Description")).queryByText("Captured")).not.toBeInTheDocument();
     expect(within(fieldOf("Title")).getByText("Edited by you")).toBeInTheDocument();
     expect(within(fieldOf("Price")).getByText("Not found. Enter it yourself.")).toBeInTheDocument();
   });
@@ -167,8 +168,8 @@ describe("ReviewView", () => {
     expect(
       screen.getByText(/Missing seller details are treated as unknown, not as suspicious/),
     ).toBeInTheDocument();
-    // Each empty field says "Not found" and points at the group note for the full sentence.
-    expect(within(fieldOf("Rating out of 5")).getByText("Not found")).toBeInTheDocument();
+    // An empty optional field says nothing of its own; it points at the group note.
+    expect(within(fieldOf("Rating out of 5")).queryByText("Not found")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Rating out of 5")).toHaveAccessibleDescription(
       /Missing seller details are treated as unknown, not as suspicious/,
     );
@@ -178,19 +179,19 @@ describe("ReviewView", () => {
   it("opens the seller group and asks for the seller details while none are captured", () => {
     renderReview();
     const group = screen
-      .getByText("Seller information (recommended)")
+      .getByText("Seller details (recommended)")
       .closest("details") as HTMLDetailsElement;
     expect(group.open).toBe(true);
     // The prompt says why the details matter and how to get them, and it does not block the check.
-    expect(screen.getByText(/Seller details are not captured yet/)).toBeInTheDocument();
-    expect(screen.getByText(/shown as unknown/)).toBeInTheDocument();
+    expect(screen.getByText(/No seller details yet/)).toBeInTheDocument();
+    expect(screen.getByText(/treated as unknown/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Check listing" })).toBeEnabled();
   });
 
   it("drops the seller prompt once seller details are captured", () => {
     renderReview({}, applySeller(draftFromListing(sampleListing()), sampleSeller()));
-    expect(screen.queryByText(/Seller details are not captured yet/)).not.toBeInTheDocument();
-    expect(within(fieldOf("Rating out of 5")).getByText("Captured")).toBeInTheDocument();
+    expect(screen.queryByText(/No seller details yet/)).not.toBeInTheDocument();
+    expect(within(fieldOf("Rating out of 5")).queryByText("Captured")).not.toBeInTheDocument();
   });
 
   it("explains what is missing instead of failing silently", () => {
@@ -239,7 +240,7 @@ describe("ReviewView", () => {
       .getByRole("button", { name: "Check listing" })
       .closest(".submit-bar") as HTMLElement;
     expect(
-      within(bar).getByText(/Raw uploaded text is scrubbed before storage/),
+      within(bar).getByText(/Contact details are removed from your text before it is stored/),
     ).toBeInTheDocument();
   });
 
@@ -292,12 +293,12 @@ describe("ReviewView", () => {
         draftFromListing(sampleListing({ platform: "mudah", platformHost: "www.mudah.my" })),
       );
       expect(screen.getAllByText(/Mudah does not show this/)).toHaveLength(2);
-      expect(screen.getAllByText(/^Not found$/)).toHaveLength(2);
+      expect(screen.queryAllByText(/^Not found$/)).toHaveLength(0);
     });
 
-    it("has a 'Capture this page' button for the seller's page", async () => {
+    it("has a 'Capture the seller's page' button", async () => {
       const props = renderReview();
-      await userEvent.click(screen.getByRole("button", { name: "Capture this page" }));
+      await userEvent.click(screen.getByRole("button", { name: "Capture the seller's page" }));
       expect(props.onCapture).toHaveBeenCalledTimes(1);
     });
 
@@ -351,7 +352,7 @@ describe("CheckingView", () => {
   it("says so honestly when the check is slow", () => {
     render(<CheckingView stage="visual" slow={true} onCancel={vi.fn()} />);
     expect(
-      screen.getByText("This is taking longer than usual. The current stage is still running."),
+      screen.getByText("This is taking longer than usual. It is still working."),
     ).toBeInTheDocument();
   });
 
@@ -389,7 +390,7 @@ describe("ResultView", () => {
         "Decision support only. Verify the seller independently before paying.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Development stub");
+    expect(screen.getByRole("status")).toHaveTextContent("Test mode");
   });
 
   it("shows only the single most protective check; the rest live on the website", () => {
@@ -408,7 +409,7 @@ describe("ResultView", () => {
     const props = renderResult();
     await userEvent.click(screen.getByRole("button", { name: "See full explanation" }));
     expect(props.onSeeFull).toHaveBeenLastCalledWith();
-    await userEvent.click(screen.getByRole("link", { name: /Visual/ }));
+    await userEvent.click(screen.getByRole("link", { name: /Photos/ }));
     expect(props.onSeeFull).toHaveBeenLastCalledWith("visual");
   });
 

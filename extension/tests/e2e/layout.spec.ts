@@ -35,7 +35,7 @@ async function openPanel(narrow = true) {
 test("the seller fields in Review are spaced apart, like the website's form", async () => {
   const { context, page } = await openPanel();
   await seedCapture(page, listingJob());
-  await page.getByText("Seller information (recommended)").waitFor();
+  await page.getByText("Seller details (recommended)").waitFor();
   const fields = page.locator("details.optional .field");
   expect(await fields.count()).toBe(4);
   const boxes = await fields.evaluateAll((nodes) =>

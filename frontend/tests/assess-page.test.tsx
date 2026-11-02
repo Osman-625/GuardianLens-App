@@ -35,7 +35,7 @@ async function fillAndSubmit() {
   await user.type(screen.getByLabelText("Description"), "Good condition.");
   await user.type(screen.getByLabelText("Price"), "1250");
   await user.type(screen.getByLabelText("Category"), "Electronics");
-  await user.click(screen.getByRole("button", { name: "Assess listing" }));
+  await user.click(screen.getByRole("button", { name: "Check listing" }));
   return user;
 }
 
@@ -58,7 +58,7 @@ describe("manual form length limits", () => {
     await user.type(screen.getByLabelText("Category"), "Electronics");
     expect(screen.getByText("501/500")).toHaveClass("error-text");
     expect(screen.getByText("Use 500 characters or fewer.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Assess listing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check listing" })).toBeDisabled();
   });
 });
 

@@ -18,9 +18,8 @@ import { apiFetch } from "@/lib/api";
 const CONFIRM_MESSAGE = [
   "Open this result from your GuardianLens extension?",
   "",
-  "This link carries a session from the browser extension. Only continue if you opened it from your own GuardianLens extension.",
-  "Continuing links this browser to that session, and checks you made earlier in this browser will no longer be listed here.",
-  "If you did not expect this link, choose Cancel.",
+  "This link opens a session from your browser extension. Continue only if you opened it from your own GuardianLens extension.",
+  "Continuing replaces this browser's session, so checks made here earlier will no longer be listed. If you did not expect this link, choose Cancel.",
 ].join("\n");
 
 // Module-level on purpose. React StrictMode (development only) runs every effect twice; sharing one

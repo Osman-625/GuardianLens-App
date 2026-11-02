@@ -25,7 +25,7 @@ test("capture to result to website handoff", async () => {
 
   await expect(page.getByText("Open a Mudah.my or Carousell listing")).toBeVisible();
   await seedCapture(page, listingJob());
-  await expect(page.getByText("Review what we captured")).toBeVisible();
+  await expect(page.getByText("Check the captured details")).toBeVisible();
   await page.getByRole("button", { name: "Check listing" }).click();
 
   const region = page.getByRole("region", {

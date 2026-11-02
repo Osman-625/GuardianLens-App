@@ -45,6 +45,20 @@ describe("processing page polling", () => {
     expect(router.replace).toHaveBeenCalledWith("/assess/a1");
   });
 
+  it("clears the saved form draft when the check completes, but keeps it when the check fails", async () => {
+    window.sessionStorage.setItem("guardianlens-draft", '{"title":"Used laptop"}');
+    vi.mocked(apiFetch).mockResolvedValueOnce({ status: "failed", stage: null, message: "No." });
+    const failed = render(<ProcessingPage />);
+    await tick(1);
+    expect(window.sessionStorage.getItem("guardianlens-draft")).not.toBeNull();
+    failed.unmount();
+
+    vi.mocked(apiFetch).mockResolvedValueOnce(complete);
+    render(<ProcessingPage />);
+    await tick(1);
+    expect(window.sessionStorage.getItem("guardianlens-draft")).toBeNull();
+  });
+
   it("tries again when a status request never reaches the server", async () => {
     vi.mocked(apiFetch)
       .mockRejectedValueOnce(lost())
@@ -62,7 +76,7 @@ describe("processing page polling", () => {
     render(<ProcessingPage />);
     await tick(6);
     expect(apiFetch).toHaveBeenCalledTimes(4);
-    expect(screen.getByRole("alert")).toHaveTextContent("could not be loaded");
+    expect(screen.getByRole("alert")).toHaveTextContent("could not get the status");
   });
 
   it("counts lost requests in a row, not in total", async () => {
@@ -87,7 +101,7 @@ describe("processing page polling", () => {
     render(<ProcessingPage />);
     await tick(3);
     expect(apiFetch).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("alert")).toHaveTextContent("could not be loaded");
+    expect(screen.getByRole("alert")).toHaveTextContent("could not get the status");
   });
 
   it("shows the server's reason when the check failed", async () => {

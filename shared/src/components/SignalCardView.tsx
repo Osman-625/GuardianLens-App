@@ -1,7 +1,7 @@
 // One signal card (visual, textual, or behavioural). All three use this single template so
 // they read as a set (Design Brief: Similarity rule).
 import type { ElementType, ReactNode } from "react";
-import { SIGNAL_ICONS, SIGNAL_NAMES } from "../copy";
+import { NO_REASON_COPY, SHOW_MODEL_DETAILS, SIGNAL_ICONS, SIGNAL_NAMES } from "../copy";
 import { sentenceCase } from "../format";
 import type { SignalCard } from "../types";
 import { Icon } from "./Icon";
@@ -35,11 +35,15 @@ export interface SignalCardViewProps {
  */
 export function SignalCardView({ card, href, LinkComponent, onOpen }: SignalCardViewProps) {
   const className = `signal-card ${card.available ? "" : "signal-unavailable"}`.trim();
-  // The strongest reason is the card's finding. Without one the API's own status word and summary
-  // stay (they say how the signal was checked, which is all there is to say).
+  // The strongest reason is the card's finding. Without one, a signal that ran says so plainly
+  // (its API wording names the model that ran, which buyers do not see); one that could not run
+  // keeps the API's own status word and summary, which say it is unknown.
   const top = card.available ? card.reasons[0] : undefined;
+  const plain = card.available && !top && !SHOW_MODEL_DETAILS;
   // Named as the main factor, not the signal's verdict: the top reason is one of up to three.
-  const status = sentenceCase(top ? `main factor: ${top.direction} risk` : card.status_word);
+  const status = sentenceCase(
+    top ? `main factor: ${top.direction} risk` : plain ? "checked" : card.status_word,
+  );
   const body = (
     <>
       <div className="signal-heading">
@@ -57,8 +61,7 @@ export function SignalCardView({ card, href, LinkComponent, onOpen }: SignalCard
           <Icon name="chevron-right" />
         </span>
       </div>
-      <p>{top ? top.display_text : card.summary}</p>
-      {card.available && card.scope_note && <p className="signal-scope">{card.scope_note}</p>}
+      <p>{top ? top.display_text : plain ? NO_REASON_COPY : card.summary}</p>
     </>
   );
 

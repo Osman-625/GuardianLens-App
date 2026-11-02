@@ -41,7 +41,9 @@ export default function ResultPage() {
     apiFetch<AssessmentResult>(`/api/v1/assess/${params.id}/result`)
       .then(setResult)
       .catch(() =>
-        setLoadError("The assessment result could not be loaded for this browser session."),
+        setLoadError(
+          "This result could not be loaded. It may belong to a different browser session.",
+        ),
       );
   }, [params.id, claimed]);
 
@@ -91,7 +93,6 @@ export default function ResultPage() {
         This session
       </Link>
       {result.development_stub && <DevBanner />}
-      <p className="eyebrow">Listing assessment</p>
       <h1 className="page-title">{result.title}</h1>
       <p className="page-lead">Checked {formatDateTime(result.created_at)}.</p>
 
@@ -106,15 +107,14 @@ export default function ResultPage() {
         <section aria-labelledby="signals-heading">
           <div className="section-head">
             <div>
-              <h2 id="signals-heading">What influenced the assessment</h2>
-              <p className="helper">Individual signal findings, interpreted together</p>
+              <h2 id="signals-heading">What shaped this result</h2>
             </div>
             <Link href={`/assess/${result.assessment_id}/explanation`}>
               Full explanation
               <Icon name="arrow-right" />
             </Link>
           </div>
-          <div className="signal-grid" aria-label="Signal summaries">
+          <div className="signal-grid" aria-label="Check summaries">
             {result.signal_cards.map((card) => (
               <SignalCardView
                 card={card}
@@ -127,8 +127,7 @@ export default function ResultPage() {
         </section>
 
         <section className="card checks-card">
-          <h2>Checks to do before paying</h2>
-          <p className="helper">Independent steps before a transaction</p>
+          <h2>Before you pay</h2>
           <ol className="check-list">
             {result.suggested_checks.map((check) => (
               <li key={check}>{check}</li>
@@ -170,7 +169,7 @@ export default function ResultPage() {
               ))}
             </div>
             <div className="field">
-              <label htmlFor="feedback-comment">Optional comment</label>
+              <label htmlFor="feedback-comment">Comment (optional)</label>
               <textarea
                 id="feedback-comment"
                 maxLength={1000}
@@ -178,7 +177,7 @@ export default function ResultPage() {
                 onChange={(event) => setComment(event.target.value)}
               />
               <span className="helper">
-                Do not include names, phone numbers, account details, or other personal information.
+                Please leave out names, phone numbers and account details.
               </span>
             </div>
             {feedbackFailed && (

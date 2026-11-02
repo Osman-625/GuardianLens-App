@@ -5,6 +5,7 @@ export type { CategoryFieldProps } from "./CategoryField";
 export { DevBanner } from "./DevBanner";
 export { Icon } from "./Icon";
 export type { IconName, IconProps } from "./Icon";
+export { LooksAt } from "./LooksAt";
 export { ScoreRegion } from "./ScoreRegion";
 export type { ScoreRegionProps } from "./ScoreRegion";
 export { SignalCardView } from "./SignalCardView";

@@ -23,14 +23,12 @@ import {
 const PLATFORM_NAMES = { carousell: "Carousell", mudah: "Mudah.my" } as const;
 
 // The status line shown under a field, by where its value came from.
+// A captured value needs no line of its own: the banner at the top says the page was read.
 const STATUS_TEXT: Record<DraftField["status"], string> = {
-  captured: "Captured",
+  captured: "",
   edited: "Edited by you",
   not_found: "Not found. Enter it yourself.",
 };
-// The status line for an optional seller field that was not found. The group's note above the
-// fields says once that missing details are unknown, not suspicious; each field points to it.
-const OPTIONAL_NOT_FOUND = "Not found";
 const SELLER_NOTE_ID = "seller-unknown-note";
 // Mudah seller pages have no ratings or reviews, so for them "not found" is expected, not a miss.
 const MUDAH_NO_RATINGS = "Mudah does not show this";
@@ -116,8 +114,10 @@ function TextField({
   const countId = `${id}-count`;
   const errorId = `${id}-error`;
   const unknownOptional = optional && field.status === "not_found";
+  // The status line, if any: an optional field that was not found says nothing, except on Mudah.
+  const status = unknownOptional ? (notFoundText ?? "") : STATUS_TEXT[field.status];
   const describedBy = [
-    statusId,
+    status ? statusId : null,
     unknownOptional ? SELLER_NOTE_ID : null,
     limit !== undefined ? countId : null,
     error ? errorId : null,
@@ -126,7 +126,6 @@ function TextField({
     .join(" ");
   const length = field.value.trim().length;
   const over = limit !== undefined && length > limit;
-  const status = unknownOptional ? (notFoundText ?? OPTIONAL_NOT_FOUND) : STATUS_TEXT[field.status];
   const shared = {
     id,
     value: field.value,
@@ -146,9 +145,11 @@ function TextField({
           onChange={(event) => onChange(event.target.value)}
         />
       )}
-      <span id={statusId} className={`field-status status-${field.status}`}>
-        {status}
-      </span>
+      {status && (
+        <span id={statusId} className={`field-status status-${field.status}`}>
+          {status}
+        </span>
+      )}
       {limit !== undefined && (
         <span id={countId} className={`char-count ${over ? "error-text" : ""}`.trim()}>
           {length}/{limit}
@@ -228,14 +229,13 @@ export function ReviewView({
       }}
     >
       <div>
-        <p className="eyebrow">Current page</p>
-        <h1 className="panel-title">Review what we captured</h1>
+        <h1 className="panel-title">Check the captured details</h1>
         <p className="capture-banner">
           <Icon name="check" />
-          <span className="platform-chip">{PLATFORM_NAMES[draft.platform]}</span> Captured from this
-          page when you clicked.
+          <span className="platform-chip">{PLATFORM_NAMES[draft.platform]}</span> Read from this
+          page.
         </p>
-        <p className="helper">Moved to another listing? Click the GuardianLens icon again.</p>
+        <p className="helper">On a different listing? Click the GuardianLens icon again.</p>
       </div>
 
       {notice && (
@@ -310,25 +310,26 @@ export function ReviewView({
             error={errorFor("category")}
             onChange={(value) => onEdit("category", value)}
           />
-          <span className={`field-status status-${draft.fields.category.status}`}>
-            {categoryMatchedFrom
-              ? `Matched from "${categoryMatchedFrom}" on the page. Change it if it is wrong.`
-              : STATUS_TEXT[draft.fields.category.status]}
-          </span>
+          {(categoryMatchedFrom || STATUS_TEXT[draft.fields.category.status]) && (
+            <span className={`field-status status-${draft.fields.category.status}`}>
+              {categoryMatchedFrom
+                ? `Matched from "${categoryMatchedFrom}" on the page. Change it if it is wrong.`
+                : STATUS_TEXT[draft.fields.category.status]}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Open by default: the behavioural signal is built from these details, so they are
           recommended, not hidden. They still never block the check. */}
       <details className="optional panel-card" open>
-        <summary>Seller information (recommended)</summary>
+        <summary>Seller details (recommended)</summary>
         {sellerMissing && (
           <p className="notice">
-            Seller details are not captured yet. The behavioural signal uses them, and without them
-            it is shown as unknown.
+            No seller details yet.
             {/* With the "Open seller page" button below, the button's note says how. */}
             {!draft.sellerUrl &&
-              " Open the seller's page and click the GuardianLens icon there, or type what you can see below."}
+              " Open the seller's page and click the GuardianLens icon there, or type what you can see."}
           </p>
         )}
         {draft.sellerUrl && (
@@ -337,17 +338,16 @@ export function ReviewView({
               Open seller page
             </button>
             <p className="helper">
-              Opens the seller&apos;s page in a new tab. Click the GuardianLens icon there (it is
-              the capture button) to add their details to this check.
+              Opens their page in a new tab. Click the GuardianLens icon there to add their details.
             </p>
           </div>
         )}
         <div>
           <button type="button" className="button button-secondary" onClick={onCapture}>
-            Capture this page
+            Capture the seller&apos;s page
           </button>
           <p className="helper">
-            Reads the page open in your browser now. Use it on the seller&apos;s page.
+            Reads the page open in your browser now. Open their profile first.
           </p>
         </div>
         {SELLER_INPUTS.some(({ key }) => draft.fields[key].value.trim() === "") && (

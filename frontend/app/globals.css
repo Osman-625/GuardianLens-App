@@ -107,9 +107,11 @@ main.page {
 }
 .page-title {
   margin: 0 0 var(--space-sm);
-  font-size: var(--text-xl);
-  line-height: 1.2;
-  letter-spacing: -0.025em;
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
 .page-lead {
@@ -118,9 +120,11 @@ main.page {
 }
 .section-title {
   margin: 0;
-  font-size: var(--text-xl);
-  line-height: 1.2;
-  letter-spacing: -0.025em;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 .back-link {
   display: inline-flex;
@@ -139,20 +143,34 @@ main.page {
 
 /* ---- Landing page ---------------------------------------------------------------------- */
 .hero {
+  display: grid;
+  gap: var(--space-2xl);
   padding: var(--space-xl) 0 var(--space-3xl);
+}
+/* "What it looks at": the three signals, named as they are on the result, with no score shown. */
+.hero-panel {
+  align-self: center;
+}
+.hero-panel h2 {
+  margin-bottom: var(--space-md);
+}
+.hero-panel .looks-list {
+  margin-bottom: var(--space-lg);
+}
+.hero-panel .helper {
+  margin: 0;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
 }
 /* The one fluid size on the site: the landing headline. */
 .hero h1 {
-  max-width: 15ch;
+  max-width: 14ch;
   margin: 0;
-  font-size: clamp(2.25rem, 1.4rem + 3.6vw, 3.75rem);
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 1.5rem + 3.8vw, 4.25rem);
+  font-weight: 500;
   line-height: 1.04;
-  letter-spacing: -0.035em;
-}
-.hero-accent {
-  display: block;
-  color: var(--color-primary);
+  letter-spacing: -0.025em;
 }
 .hero-lead {
   max-width: 34rem;
@@ -185,10 +203,15 @@ main.page {
 }
 
 .install-card {
+  display: grid;
+  gap: var(--space-lg);
   margin: 0 0 var(--space-4xl);
 }
+.install-card .helper {
+  margin: var(--space-sm) 0 0;
+}
 .install-steps {
-  margin: var(--space-md) 0 var(--space-lg);
+  margin: 0;
   padding-left: 22px;
 }
 .install-steps li {
@@ -237,6 +260,8 @@ main.page {
   line-height: 1.25;
 }
 .steps h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
   margin: 0 0 var(--space-xs);
   font-size: var(--text-lg);
 }
@@ -256,6 +281,10 @@ main.page {
   margin-top: 2px;
   color: var(--color-ink-muted);
 }
+.scope-banner > div {
+  display: grid;
+  gap: 0 var(--space-3xl);
+}
 
 /* ---- Manual submission form ------------------------------------------------------------ */
 .form-stack {
@@ -271,7 +300,9 @@ main.page {
 }
 .form-section h2 {
   margin: 0 0 var(--space-lg);
-  font-size: var(--text-lg);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
 }
 .field-row {
   display: grid;
@@ -286,32 +317,64 @@ main.page {
 .field-row + .field {
   margin-top: var(--space-lg);
 }
+/* The file input stays in the DOM and in the tab order; only its look is hidden. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  min-height: 0;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .uploader {
-  min-height: 132px;
+  position: relative;
+  min-height: 148px;
   border: 2px dashed var(--color-control-border);
   border-radius: var(--radius-card);
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-xs);
   padding: var(--space-lg);
   text-align: center;
   background: var(--color-surface-alt);
+  cursor: pointer;
   transition:
     border-color 160ms var(--ease-out),
     background-color 160ms var(--ease-out);
 }
-.uploader:focus-within,
-.uploader:hover {
+.uploader-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: var(--space-xs);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface);
+  color: var(--color-primary);
+}
+.uploader .helper {
+  max-width: 38ch;
+}
+.uploader.is-dragging {
+  border-style: solid;
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
 }
-.uploader .helper {
-  margin: var(--space-xs) 0 var(--space-sm);
+@media (hover: hover) and (pointer: fine) {
+  .uploader:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-soft);
+  }
 }
-.uploader input {
-  max-width: 100%;
-  border: 0;
-  background: transparent;
-  padding: var(--space-sm);
+.uploader:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 .file-list {
   margin: var(--space-md) 0 0;
@@ -323,17 +386,45 @@ main.page {
 .file-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-md);
+  padding: var(--space-sm);
+}
+.file-thumb {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--color-surface-tint);
 }
 .file-name {
+  flex: 1;
   min-width: 0;
+  display: grid;
+}
+.file-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+}
+.file-size {
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+}
+.file-row .button {
+  min-height: 44px;
+}
+/* The submit bar's lines (retention, why the button waits, an error, the button) share one gap. */
+.form-stack .submit-bar {
+  display: grid;
+  gap: var(--space-sm);
+}
+.form-stack .submit-bar > p {
+  margin: 0;
 }
 
 /* ---- Processing, result, and explanation pages ----------------------------------------- */
@@ -356,6 +447,19 @@ main.page {
   scroll-margin-top: 88px;
   margin-bottom: var(--space-lg);
 }
+.explanation-section h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.explanation-section .signal-icon {
+  width: 34px;
+  height: 34px;
+}
+.explanation-section .signal-icon .icon {
+  width: 18px;
+  height: 18px;
+}
 /* Each reason leads with its direction in words ("raises risk"), so the direction never rests on
    colour alone. */
 .reason-list {
@@ -374,12 +478,19 @@ main.page {
   background: var(--color-surface-alt);
 }
 .reason-direction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   border-radius: 999px;
-  padding: 0 var(--space-sm);
+  padding: 2px var(--space-sm);
   background: var(--color-surface);
   color: var(--color-ink-muted);
   font-size: var(--text-label);
   font-weight: 700;
+}
+.reason-direction .icon {
+  width: 14px;
+  height: 14px;
 }
 .reason-raises .reason-direction {
   color: var(--color-risk-high);
@@ -420,7 +531,9 @@ main.page {
 }
 .section-head h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 .section-head .helper {
   margin: 2px 0 0;
@@ -444,6 +557,17 @@ main.page {
 .feedback-card {
   margin-bottom: var(--space-lg);
 }
+.feedback-card:not(:has(form)) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md) var(--space-lg);
+  padding-block: var(--space-lg);
+}
+.feedback-card:not(:has(form)) h2 {
+  margin: 0;
+}
 .feedback-card form {
   display: grid;
   justify-items: start;
@@ -457,6 +581,27 @@ main.page {
 }
 .feedback-card form .field {
   margin-bottom: 0;
+}
+
+/* The result lands once, in order: signal cards, then the checks. Short and ease-out; the global
+   reduced-motion rule in the shared stylesheet switches it off. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.result-page .signal-grid > .signal-card {
+  animation: rise 320ms var(--ease-out) backwards;
+}
+.result-page .signal-grid > .signal-card:nth-child(2) {
+  animation-delay: 60ms;
+}
+.result-page .signal-grid > .signal-card:nth-child(3) {
+  animation-delay: 120ms;
+}
+.result-page .checks-card {
+  animation: rise 320ms var(--ease-out) 180ms backwards;
 }
 
 /* ---- Session history ------------------------------------------------------------------- */
@@ -559,7 +704,20 @@ main.page {
 }
 @media (min-width: 900px) {
   .hero {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: var(--space-3xl);
+    align-items: center;
     padding: var(--space-3xl) 0 var(--space-4xl);
+  }
+  .install-card {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--space-3xl);
+  }
+  .scope-banner > div {
+    grid-template-columns: 1fr 1fr;
+  }
+  .scope-banner > div > strong {
+    grid-column: 1 / -1;
   }
   .process {
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);

@@ -27,18 +27,18 @@ from api.services.trained_models import TrainedModels
 # The caveat shown with every score, the extra warning shown only on stub scores, and the manual
 # checks every result suggests.
 DISCLAIMER = (
-    "GuardianLens supports your judgement and cannot confirm whether a listing is fraudulent. "
-    "Verify the seller and payment details independently before paying."
+    "GuardianLens supports your judgement. It cannot confirm that a listing is fraudulent or safe. "
+    "Verify the seller and payment details yourself before paying."
 )
 DEVELOPMENT_NOTICE = (
-    "Development stub output. It is not produced by the trained GuardianLens models and must not "
-    "be used as research evidence or as a real fraud assessment."
+    "Test mode: this score is placeholder data. Do not use it as research evidence or to judge "
+    "a real listing."
 )
 SUGGESTED_CHECKS = [
     "Compare the price with similar listings on the same marketplace.",
-    "Ask for a new photo showing the item with a specific handwritten note.",
-    "Keep communication and payment inside the marketplace where possible.",
-    "Verify account or bank details independently using the official Semak Mule service.",
+    "Ask for a new photo of the item next to a handwritten note.",
+    "Keep chat and payment inside the marketplace where possible.",
+    "Check the seller's account or bank details on the official Semak Mule service.",
 ]
 
 
@@ -152,8 +152,8 @@ def run_development_assessment(
         unknown = sum(1 for output in outputs if not output.available)
         missing_notices = (
             [
-                f"This score uses {len(outputs) - unknown} of {len(outputs)} signals. "
-                "The rest are treated as unknown, not as suspicious."
+                f"This result uses {len(outputs) - unknown} of {len(outputs)} checks. "
+                "A check that could not run is unknown, not suspicious."
             ]
             if unknown
             else []

@@ -117,22 +117,22 @@ describe("PanelApp", () => {
     expect(openUrl).toHaveBeenCalledExactlyOnceWith("https://www.carousell.com.my/u/someone/");
   });
 
-  it("'Capture this page' reads the page open in the browser now", async () => {
+  it("'Capture the seller's page' reads the page open in the browser now", async () => {
     const { storage, emit } = fakeStorage();
     const { deps, captureActiveTab } = fakeDeps(storage);
     render(<PanelApp deps={deps} />);
     await emit(listingJob(10, sampleListing()));
-    await userEvent.click(await screen.findByRole("button", { name: "Capture this page" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Capture the seller's page" }));
     expect(captureActiveTab).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the 'could not be read' message when 'Capture this page' fails", async () => {
+  it("shows the 'could not be read' message when 'Capture the seller's page' fails", async () => {
     const { storage, emit } = fakeStorage();
     const { deps, captureActiveTab } = fakeDeps(storage);
     captureActiveTab.mockRejectedValueOnce(new Error("no gesture"));
     render(<PanelApp deps={deps} />);
     await emit(listingJob(10, sampleListing()));
-    await userEvent.click(await screen.findByRole("button", { name: "Capture this page" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Capture the seller's page" }));
     expect(await screen.findByText(/The page could not be read/)).toBeInTheDocument();
   });
 
@@ -150,7 +150,7 @@ describe("PanelApp", () => {
     const { deps, client } = fakeDeps(storage);
     render(<PanelApp deps={deps} />);
     await emit(listingJob());
-    await screen.findByText("Review what we captured");
+    await screen.findByText("Check the captured details");
 
     await userEvent.dblClick(screen.getByRole("button", { name: "Check listing" }));
 
@@ -178,7 +178,7 @@ describe("PanelApp", () => {
     );
     render(<PanelApp deps={deps} />);
     await emit(listingJob());
-    await screen.findByText("Review what we captured");
+    await screen.findByText("Check the captured details");
     await userEvent.clear(screen.getByLabelText("Title"));
     await userEvent.type(screen.getByLabelText("Title"), "My edited title");
 
@@ -201,12 +201,12 @@ describe("PanelApp", () => {
     );
     render(<PanelApp deps={deps} />);
     await emit(listingJob());
-    await screen.findByText("Review what we captured");
+    await screen.findByText("Check the captured details");
     await userEvent.click(screen.getByRole("button", { name: "Check listing" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("not reachable");
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByText("Review what we captured")).toBeInTheDocument();
+    expect(await screen.findByText("Check the captured details")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Used laptop in good condition");
   });
 
@@ -229,7 +229,7 @@ describe("PanelApp", () => {
     render(<PanelApp deps={deps} />);
     await emit(listingJob());
     await userEvent.click(await screen.findByRole("button", { name: "Check listing" }));
-    await userEvent.click(await screen.findByRole("link", { name: /Visual/ }));
+    await userEvent.click(await screen.findByRole("link", { name: /Photos/ }));
     await waitFor(() =>
       expect(openUrl).toHaveBeenLastCalledWith(
         `${SITE}/assess/a1/explanation#st=tok-123&signal=visual`,
@@ -243,7 +243,7 @@ describe("PanelApp", () => {
     );
     const { storage } = fakeStorage({ draft, lastDoneJobId: 10 });
     render(<PanelApp deps={fakeDeps(storage).deps} />);
-    expect(await screen.findByText("Review what we captured")).toBeInTheDocument();
+    expect(await screen.findByText("Check the captured details")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Saved earlier");
   });
 

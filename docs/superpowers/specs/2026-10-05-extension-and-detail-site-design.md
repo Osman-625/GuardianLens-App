@@ -134,7 +134,7 @@ A single column about 360 to 420 px wide, using the existing design tokens and t
 
 | State | Content |
 |---|---|
-| Not on a listing | Wordmark, "Open a Mudah.my or Carousell listing, then click the icon." Links to This session and the website. |
+| Not on a listing | Wordmark, "Open a Mudah.my or Carousell listing, then click the icon." Links to This session and the website, then a short list of what the three checks look at. |
 | Review | Up to 3 photo thumbnails (removable, swappable if more were found); editable title, price, description, platform, and category. Category is a free-text combobox prefilled with the platform's own category text, with the 12 trained categories (Phones, Gaming, Home Appliances, Laptops, Fashion, Audio, Cameras, Sports, Wearables, Tablets, Collectibles, Other) offered as suggestions and no restriction on what can be typed. When the category is not one of the trained 12, a plain note says the price is compared with the overall average rather than the category average. Each field is labelled Captured or Not found in text. A collapsed "Seller information (optional)" group states that missing seller fields are treated as unknown, not suspicious. It offers an **Add seller details** action: if the buyer opens the seller's profile page and clicks the icon there, the panel reads the seller fields from that page and merges them into the draft. This stays click-only, with no automatic navigation, and a second listing is never captured. The retention notice sits beside the sticky Check listing button. The panel states "Captured from this page when you clicked." |
 | Checking | Five labelled stages in a polite live region, a Cancel text button, an honest "taking longer than usual" line after a threshold, no percentages. |
 | Result | One bounded region holds the score, band chip, and disclaimer. Below: three compact signal cards, any missing-data notice, and the single most protective check ("Verify the seller independently, for example with Semak Mule"). Then a Was this helpful? prompt. Primary action: See full explanation. Secondary: Check another listing. |
@@ -264,3 +264,5 @@ Parser tests use the Collector's recorded examples and the real-page fixtures fr
 ## 12. Out of scope
 
 URL-paste ingestion, screenshot OCR, crawling or background capture (the Crawler's pagination, show-more, and overlay logic is not reused), LLM-based field extraction in the buyer path, platform integration, community reporting, buyer accounts, cross-login history, Facebook Marketplace, Malay UI, Chrome Web Store publication, and the hosted deployment (decided at the end of the build).
+
+*Updated 2026-11-02: the panel's wording, names and look follow `.impeccable.md` and `docs/CHANGES_FROM_SPEC.md`; a captured field shows no status line (only "Edited by you" or "Not found" do), and the three checks are Photos, Wording and Seller and price.*

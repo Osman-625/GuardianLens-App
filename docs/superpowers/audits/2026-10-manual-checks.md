@@ -36,10 +36,10 @@ Build and load the extension (see the README), then:
 - [ ] An unseen category such as "Aquarium supplies" shows the overall-average note on the manual form and submits
 - [ ] After one manual and one extension check, `sqlite3 data/guardianlens.sqlite3 "select source, count(*) from assessments group by source"` shows `manual` and `extension`
 
-## 4. Trained models (why a running API shows the "Development stub" banner)
+## 4. Trained models (why a running API shows the "Test mode" banner)
 
 Done on 2026-10-06 (see "Status on this machine" in `docs/TRAINED_MODELS.md`): the fitted files are installed, `.env` is set to `trained`, and the dependencies are installed. Still needed from you:
 
 - [ ] Stop the running API and start it again (a first start takes several minutes), then open `GET /health` and confirm it names the bundle `20261002_062026_colab_v3_noMeta`
-- [ ] Run a NEW check (old results stay as saved snapshots) and confirm the banner and the "Development stub output" disclaimer are gone and all three signal cards show a model check
+- [ ] Run a NEW check (old results stay as saved snapshots) and confirm the banner and the "Test mode" line in the disclaimer are gone and all three check cards show a real reason (model names are hidden from buyers on purpose)
 - [ ] Time a check with many photos: the first two-photo check took 7.4 seconds against a 10 second budget, and the limit is now 10 photos

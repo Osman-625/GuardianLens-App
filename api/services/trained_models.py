@@ -37,16 +37,16 @@ def missing_artifacts(run_dir: Path) -> list[str]:
 # flagged risky more often than sellers without one (38% against 19% on Carousell, where profiles
 # are common; 12% on Mudah, where they almost never appear), and a higher rating did not lower it.
 _BEHAVIOURAL_LIMIT = (
-    "This signal is learned from annotated listings, not a judgement of the seller. In those "
-    "listings, sellers with a full profile (rating, reviews, account age) were flagged risky more "
-    "often than sellers without one, and a higher rating did not lower that. A good profile does "
-    "not mean a safe listing."
+    "This check learns from past listings that people reviewed. It is not a judgement of the "
+    "seller. In those listings, sellers with a full profile (rating, reviews, account age) were "
+    "flagged risky more often than sellers without one, and a higher rating did not lower that. "
+    "A good profile does not mean a safe listing."
 )
 
 # How a reason reads as a sentence about THIS listing: 'The seller rating (4.8) raised this
 # signal's risk estimate.' It states what happened in this check, never a general rule.
 _VERB = {"raises": "raised", "lowers": "lowered"}
-_TAIL = "this signal's risk estimate."
+_TAIL = "the risk estimate."
 
 
 def _shown_value(key: str, value: Any) -> str:
@@ -205,8 +205,7 @@ class TrainedModels:
             ),
             reasons=reasons,
             scope_note=(
-                "Shown phrases are word-feature contributions; "
-                "text cues and character features also affect the score."
+                "The phrases shown moved the result most. Other wording in the listing also counts."
             ),
         )
 
@@ -222,7 +221,7 @@ class TrainedModels:
             effects = self.behaviour.shap_values(frame).iloc[0].drop("_base")
         names = {
             "price": "The listing price",
-            "price_ratio_category": "The price compared with training listings in this category",
+            "price_ratio_category": "The price compared with similar listings in this category",
             "account_age_days": "The account age",
             "seller_rating": "The seller rating",
             "review_count": "The review count",
@@ -261,8 +260,8 @@ class TrainedModels:
             summary="Analysed using the trained XGBoost behavioural model.",
             reasons=reasons,
             scope_note=(
-                f"{missing} seller fields are unknown. "
-                "The trained model uses missingness flags; no seller values were invented. "
+                f"{missing} seller {'field is' if missing == 1 else 'fields are'} unknown. "
+                "No seller values were invented. "
                 if missing
                 else ""
             )
@@ -283,8 +282,7 @@ class TrainedModels:
                 status_word="limited information",
                 summary="Photo check unavailable right now. Treated as unknown, not as suspicious.",
                 scope_note=(
-                    "The fusion model receives a missing visual signal, "
-                    "not a development test score."
+                    "The result is worked out without the photos. No placeholder score is used."
                 ),
             )
         with self.lock:
@@ -331,7 +329,10 @@ class TrainedModels:
                 "and the trained visual classifier."
             ),
             reasons=reasons,
-            scope_note="Image similarity is limited to the approved training reference corpus.",
+            scope_note=(
+                "Photos are compared only with a fixed set of reference images, not every image "
+                "online."
+            ),
         )
 
     def warm_up(self) -> None:

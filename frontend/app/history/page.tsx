@@ -24,23 +24,22 @@ export default function HistoryPage() {
     if (!claimed) return;
     apiFetch<HistoryItem[]>("/api/v1/session/history")
       .then(setItems)
-      .catch(() => setError("Session history could not be loaded."));
+      .catch(() => setError("This list could not be loaded. Try again shortly."));
   }, [claimed]);
 
   return (
     <main className="page">
-      <p className="eyebrow">Current browser session</p>
       <h1 className="page-title">Listings checked this session</h1>
       <p className="page-lead">
-        Checks made in this browser session, from the website or the extension. They are not saved
-        to an account.
+        Checks from this browser session, on the website or in the extension. Nothing is saved to an
+        account.
       </p>
       {error && <p className="error-text">{error}</p>}
       {items === null && !error && <div className="loading">Loading history…</div>}
       {items?.length === 0 && (
         <section className="card empty-state">
           <h2>No listings checked this session yet</h2>
-          <p>Submit a listing to see it here.</p>
+          <p>Checks you run will appear here.</p>
           <Link className="button button-primary" href="/assess">
             Check a listing
           </Link>

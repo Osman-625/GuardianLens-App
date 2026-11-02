@@ -56,6 +56,9 @@ extension/test-results/
 .tmp/
 .claude/
 .superpowers/
+.agents/
+.taste-skill/
+.fallow/
 
 # OS and editor
 .DS_Store

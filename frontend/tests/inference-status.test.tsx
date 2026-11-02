@@ -32,10 +32,10 @@ describe("landing inference status", () => {
     render(<InferenceStatus />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Checking service availability");
-    expect(screen.queryByText(/Development stub/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Test mode/)).not.toBeInTheDocument();
 
     await act(async () => resolve(health(true)));
-    expect(screen.getByRole("status")).toHaveTextContent("Development stub");
+    expect(screen.getByRole("status")).toHaveTextContent("Test mode");
     expect(apiFetch).toHaveBeenCalledWith("/health", {
       cache: "no-store",
       signal: expect.any(AbortSignal),
@@ -46,7 +46,7 @@ describe("landing inference status", () => {
     vi.mocked(apiFetch).mockResolvedValue(health(false));
     render(<InferenceStatus />);
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
-    expect(screen.queryByText(/Development stub/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Test mode/)).not.toBeInTheDocument();
   });
 
   it.each([{ status: "ok", stub_mode: true, inference_mode: "trained" }, { status: "ok" }, null])(
@@ -57,7 +57,7 @@ describe("landing inference status", () => {
       await waitFor(() =>
         expect(screen.getByRole("status")).toHaveTextContent("could not be reached"),
       );
-      expect(screen.queryByText(/Development stub/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Test mode/)).not.toBeInTheDocument();
     },
   );
 
